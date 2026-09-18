@@ -76,14 +76,58 @@ function updateSessionIcon() {
   const emailEl = document.getElementById("dropdown-email");
   const bannerNameEl = document.getElementById("banner-user-name");
   const bannerEmailEl = document.getElementById("banner-user-email");
+  const jwtBadge = document.querySelector(".jwt-badge");
+  const rolePill = document.querySelector(".role-pill");
+  const btnAdminPanel = document.getElementById("btn-admin-panel");
 
   if (initialsEl) initialsEl.textContent = initials;
-  if (displayNameEl) displayNameEl.textContent = currentUser.name.split(" ")[0];
   if (fullNameEl) fullNameEl.textContent = currentUser.name;
   if (emailEl) emailEl.textContent = currentUser.email;
 
-  if (bannerNameEl) bannerNameEl.textContent = `Sesión iniciada con JWT: ${currentUser.name}`;
-  if (bannerEmailEl) bannerEmailEl.textContent = `Tus aportes se vincularán automáticamente a tu cuenta (${currentUser.email}).`;
+  const isAdmin = currentUser.role === "admin";
+
+  if (displayNameEl) {
+    displayNameEl.textContent = (isAdmin ? "👑 " : "") + currentUser.name.split(" ")[0];
+  }
+
+  if (jwtBadge) {
+    if (isAdmin) {
+      jwtBadge.textContent = "👑 Superusuario";
+      jwtBadge.classList.add("admin-badge");
+    } else {
+      jwtBadge.textContent = "● JWT Activo";
+      jwtBadge.classList.remove("admin-badge");
+    }
+  }
+
+  if (rolePill) {
+    if (isAdmin) {
+      rolePill.textContent = "👑 Superusuario (Acceso Total a BD)";
+      rolePill.classList.add("admin-pill");
+    } else {
+      rolePill.textContent = "Donante Autenticado";
+      rolePill.classList.remove("admin-pill");
+    }
+  }
+
+  if (btnAdminPanel) {
+    if (isAdmin) {
+      btnAdminPanel.classList.remove("hidden");
+    } else {
+      btnAdminPanel.classList.add("hidden");
+    }
+  }
+
+  if (bannerNameEl) {
+    bannerNameEl.textContent = isAdmin
+      ? `👑 Sesión de Superusuario: ${currentUser.name}`
+      : `Sesión iniciada con JWT: ${currentUser.name}`;
+  }
+  if (bannerEmailEl) {
+    bannerEmailEl.textContent = isAdmin
+      ? `Tienes privilegios de administración y acceso directo a la Base de Datos SQLite.`
+      : `Tus aportes se vincularán automáticamente a tu cuenta (${currentUser.email}).`;
+  }
 }
 
 function toggleUserDropdown() {
@@ -124,10 +168,16 @@ function switchLoginTab(tab) {
   }
 }
 
+function fillAdminCredentials() {
+  document.getElementById("login-email").value = "admin@donaciones.org";
+  document.getElementById("login-password").value = "admin1234";
+  showToast("Credenciales de Superusuario cargadas.", "info");
+}
+
 function fillDemoCredentials() {
   document.getElementById("login-email").value = "demo@donaciones.org";
   document.getElementById("login-password").value = "demo1234";
-  showToast("Credenciales de prueba cargadas.", "info");
+  showToast("Credenciales de Donante cargadas.", "info");
 }
 
 async function handleLoginSubmit(event) {
@@ -530,6 +580,142 @@ function openJwtInspectorModal() {
 
 function closeJwtInspectorModal() {
   document.getElementById("jwt-inspector-modal").classList.add("hidden");
+}
+
+/* ==========================================================================
+   7.5. PANEL DE SUPERUSUARIO (BASE DE DATOS SQLITE)
+   ========================================================================== */
+
+function openAdminPanelModal() {
+  const modal = document.getElementById("admin-modal");
+  const dropdown = document.getElementById("user-dropdown");
+  if (dropdown) dropdown.classList.add("hidden");
+
+  if (!currentUser || currentUser.role !== "admin") {
+    showToast("Se requieren privilegios de Superusuario.", "error");
+    return;
+  }
+
+  modal.classList.remove("hidden");
+  loadAdminData();
+}
+
+function closeAdminPanelModal() {
+  document.getElementById("admin-modal").classList.add("hidden");
+}
+
+function switchAdminTab(tab) {
+  const tabUsersBtn = document.getElementById("tab-admin-users-btn");
+  const tabDonationsBtn = document.getElementById("tab-admin-donations-btn");
+  const usersContainer = document.getElementById("admin-users-container");
+  const donationsContainer = document.getElementById("admin-donations-container");
+
+  if (tab === "users") {
+    tabUsersBtn.classList.add("active");
+    tabDonationsBtn.classList.remove("active");
+    usersContainer.classList.remove("hidden");
+    donationsContainer.classList.add("hidden");
+  } else {
+    tabDonationsBtn.classList.add("active");
+    tabUsersBtn.classList.remove("active");
+    donationsContainer.classList.remove("hidden");
+    usersContainer.classList.add("hidden");
+  }
+}
+
+async function loadAdminData() {
+  const usersContainer = document.getElementById("admin-users-container");
+  const donationsContainer = document.getElementById("admin-donations-container");
+  const usersCountEl = document.getElementById("admin-users-count");
+  const donationsCountEl = document.getElementById("admin-donations-count");
+
+  usersContainer.innerHTML = "<p style='padding:1rem; color:#64748b;'>Cargando usuarios desde SQLite...</p>";
+  donationsContainer.innerHTML = "<p style='padding:1rem; color:#64748b;'>Cargando donaciones desde SQLite...</p>";
+
+  // 1. Cargar Usuarios
+  try {
+    const resUsers = await apiFetch("/api/admin/users");
+    if (resUsers.ok) {
+      const users = await resUsers.json();
+      usersCountEl.textContent = users.length;
+
+      let htmlUsers = `
+        <table class="donations-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Correo Electrónico</th>
+              <th>Rol</th>
+              <th>Fecha de Registro</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      users.forEach(u => {
+        const isAdmin = u.role === "admin";
+        htmlUsers += `
+          <tr>
+            <td><strong>#${u.id}</strong></td>
+            <td>${escapeHtml(u.name)}</td>
+            <td>${escapeHtml(u.email)}</td>
+            <td><span class="${isAdmin ? 'role-pill admin-pill' : 'role-pill'}">${isAdmin ? '👑 Superusuario' : '👤 Donante'}</span></td>
+            <td><small>${escapeHtml(u.created_at)}</small></td>
+          </tr>
+        `;
+      });
+      htmlUsers += `</tbody></table>`;
+      usersContainer.innerHTML = htmlUsers;
+    } else {
+      usersContainer.innerHTML = "<p class='auth-error'>Error al cargar usuarios de la BD.</p>";
+    }
+  } catch (e) {
+    usersContainer.innerHTML = "<p class='auth-error'>Error de conexión con la BD.</p>";
+  }
+
+  // 2. Cargar Donaciones
+  try {
+    const resDonations = await apiFetch("/api/admin/donations");
+    if (resDonations.ok) {
+      const donations = await resDonations.json();
+      donationsCountEl.textContent = donations.length;
+
+      let htmlDons = `
+        <table class="donations-table">
+          <thead>
+            <tr>
+              <th>Folio</th>
+              <th>Donante</th>
+              <th>Correo</th>
+              <th>Causa</th>
+              <th>Monto</th>
+              <th>Método</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      donations.forEach(d => {
+        htmlDons += `
+          <tr>
+            <td><span class="code-tag">#DON-${String(d.id).padStart(4, '0')}</span></td>
+            <td><strong>${escapeHtml(d.donor_name)}</strong></td>
+            <td><small>${escapeHtml(d.donor_email)}</small></td>
+            <td>${escapeHtml(d.cause)}</td>
+            <td class="text-green font-bold">$${Number(d.amount).toFixed(2)}</td>
+            <td>${escapeHtml(d.payment_method)}</td>
+            <td><small>${escapeHtml(d.created_at)}</small></td>
+          </tr>
+        `;
+      });
+      htmlDons += `</tbody></table>`;
+      donationsContainer.innerHTML = htmlDons;
+    } else {
+      donationsContainer.innerHTML = "<p class='auth-error'>Error al cargar donaciones de la BD.</p>";
+    }
+  } catch (e) {
+    donationsContainer.innerHTML = "<p class='auth-error'>Error de conexión con la BD.</p>";
+  }
 }
 
 /* ==========================================================================

@@ -472,6 +472,26 @@ body {
   border-radius: 9999px;
 }
 
+.role-pill.admin-pill {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.jwt-badge.admin-badge {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.admin-dropdown-item {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.admin-dropdown-item:hover {
+  background: #f5f3ff;
+}
+
 .dropdown-divider {
   height: 1px;
   background: var(--border);

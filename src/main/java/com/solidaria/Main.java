@@ -1,6 +1,7 @@
 package com.solidaria;
 
 import com.solidaria.handlers.AuthHandler;
+import com.solidaria.handlers.AdminHandler;
 import com.solidaria.handlers.DonationHandler;
 import com.solidaria.handlers.StatsHandler;
 import com.solidaria.handlers.StaticFileHandler;
@@ -38,6 +39,11 @@ public class Main {
 
             // Estadísticas
             server.createContext("/api/donations/stats", new StatsHandler());
+
+            // Rutas de Superusuario (Admin)
+            AdminHandler adminHandler = new AdminHandler();
+            server.createContext("/api/admin/users", adminHandler);
+            server.createContext("/api/admin/donations", adminHandler);
 
             // Archivos Estáticos (HTML, CSS, JS) y Ventana de Donaciones
             StaticFileHandler staticHandler = new StaticFileHandler();

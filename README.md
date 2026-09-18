@@ -9,8 +9,10 @@ Implementación completa en **Java 11**, **HTML5** y **CSS3** de un sistema de i
 ## Tecnologías Utilizadas
 
 - **Backend**: Java 11 (`com.sun.net.httpserver.HttpServer`).
+- **Base de Datos**: **SQLite 3** (`donations.db`) con modo concurrente WAL y tablas `users` y `donations`.
 - **Autenticación**: JSON Web Tokens (**JWT**, RFC 7519) firmados con algoritmo **HMAC-SHA256** (`javax.crypto.Mac`).
 - **Criptografía de Contraseñas**: **PBKDF2 con HmacSHA256** y sal criptográfica aleatoria (`SecureRandom`).
+- **Superusuario (Admin)**: Cuenta de administración (`admin@donaciones.org`) con acceso exclusivo para consultar todos los usuarios y donaciones en la base de datos.
 - **Frontend**: **HTML5 semántico**, **CSS3 moderno** (diseño responsivo, glassmorphism) y **JavaScript vanilla** para el manejo de sesiones y peticiones HTTP.
 
 ---

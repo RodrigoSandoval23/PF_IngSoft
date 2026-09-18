@@ -8,5 +8,5 @@ fi
 
 PORT="${1:-8080}"
 echo "Ejecutando servidor Java en el puerto $PORT..."
-java -cp bin com.solidaria.Main "$PORT"
-
+CP="bin:lib/*"
+java -cp "$CP" com.solidaria.Main "$PORT"
