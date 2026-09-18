@@ -19,3 +19,4 @@ javac -cp "$CP" -d bin $(find src/main/java src/test/java -name "*.java")
 
 echo "Ejecutando SonarQube Code Quality & Security Gate Test Suite..."
 java -cp "$CP" com.solidaria.SonarQubeQualityTest
+

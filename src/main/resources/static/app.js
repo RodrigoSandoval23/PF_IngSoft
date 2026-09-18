@@ -70,13 +70,13 @@ function updateSessionIcon() {
   const btnAdminPanel = document.getElementById("btn-admin-panel");
   const btnNavAdmin = document.getElementById("btn-nav-admin");
 
-  if (initialsEl) initialsEl.textContent = initials;
-  if (fullNameEl) fullNameEl.textContent = currentUser.name;
-  if (emailEl) emailEl.textContent = currentUser.email;
-
   const isAdmin = currentUser.role === "ADMIN";
 
-  if (displayNameEl) displayNameEl.textContent = (isAdmin ? "👑 " : "") + currentUser.name.split(" ")[0];
+  if (initialsEl) initialsEl.textContent = isAdmin ? "AD" : "DR";
+  if (fullNameEl) fullNameEl.textContent = isAdmin ? currentUser.name : "Donante registrado";
+  if (emailEl) emailEl.textContent = currentUser.email;
+
+  if (displayNameEl) displayNameEl.textContent = isAdmin ? "👑 Admin" : "Donante registrado";
   if (displayRoleEl) displayRoleEl.textContent = currentUser.role;
 
   if (rolePill) {
@@ -92,7 +92,7 @@ function updateSessionIcon() {
   const rfcVal = currentUser.rfc || "Sin RFC";
   if (rfcEl) rfcEl.textContent = rfcVal;
 
-  if (bannerNameEl) bannerNameEl.textContent = (isAdmin ? "👑 " : "") + currentUser.name;
+  if (bannerNameEl) bannerNameEl.textContent = isAdmin ? "👑 Superusuario" : "Donante registrado";
   if (bannerRfcEl) bannerRfcEl.textContent = `RFC: ${rfcVal}`;
   if (bannerEntityEl) {
     bannerEntityEl.textContent = currentUser.entity_type || (isAdmin ? "ADMIN" : "ENTIDAD");
@@ -136,8 +136,10 @@ function switchAuthTab(tab) {
   const formLogin = document.getElementById("form-login");
   const formRegister = document.getElementById("form-register");
   const errorMsg = document.getElementById("auth-error-msg");
+  const successMsg = document.getElementById("auth-success-msg");
 
   if (errorMsg) errorMsg.classList.add("hidden");
+  if (successMsg) successMsg.classList.add("hidden");
 
   if (tab === "login") {
     if (btnLogin) btnLogin.classList.add("active");
@@ -204,7 +206,7 @@ async function handleLoginSubmit(event) {
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentUser));
 
     showAppView();
-    showToast(`Bienvenido, ${currentUser.name}`, "success");
+    showToast(currentUser.role === "ADMIN" ? `Bienvenido, ${currentUser.name}` : "Donante registrado", "success");
   } catch (err) {
     if (errorMsg) {
       errorMsg.textContent = "Error de conexión con el servidor.";
@@ -228,9 +230,11 @@ async function handleRegisterSubmit(event) {
   const password = document.getElementById("reg-password").value;
 
   const errorMsg = document.getElementById("auth-error-msg");
+  const successMsg = document.getElementById("auth-success-msg");
   const submitBtn = document.getElementById("btn-submit-register");
 
   if (errorMsg) errorMsg.classList.add("hidden");
+  if (successMsg) successMsg.classList.add("hidden");
 
   if (rfc.length < 12 || rfc.length > 13) {
     errorMsg.textContent = "El RFC debe tener entre 12 y 13 caracteres.";
@@ -263,12 +267,12 @@ async function handleRegisterSubmit(event) {
       return;
     }
 
-    showPendingAlertModal();
-    showToast("Solicitud enviada para revisión.", "info");
-
     document.getElementById("form-register").reset();
-    switchAuthTab("login");
-    document.getElementById("login-email").value = email;
+    if (successMsg) {
+      successMsg.textContent = "Registrado exitosamente";
+      successMsg.classList.remove("hidden");
+    }
+    showToast("Registrado exitosamente", "success");
   } catch (err) {
     if (errorMsg) {
       errorMsg.textContent = "Error de conexión con el servidor.";
@@ -492,7 +496,7 @@ function showReceiptModal(donation) {
   const elAmount = document.getElementById("rec-amount");
   const elId = document.getElementById("rec-id");
 
-  if (elName) elName.textContent = donation.donor_name;
+  if (elName) elName.textContent = currentUser && currentUser.role === "ADMIN" ? donation.donor_name : "Donante registrado";
   if (elEmail) elEmail.textContent = donation.donor_email;
   if (elRfc) elRfc.textContent = donation.rfc && donation.rfc.trim() !== "" ? donation.rfc : "No solicitado";
   if (elCause) elCause.textContent = donation.cause;
