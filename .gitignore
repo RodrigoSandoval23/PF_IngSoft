@@ -1,0 +1,15 @@
+# Bytecode de Java
+bin/
+*.class
+
+# Maven
+target/
+
+# Sistema Operativo / IDEs
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Logs y temporales
+*.log

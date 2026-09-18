@@ -1,0 +1,12 @@
+=== BITÁCORA DE PROYECTO: INGDESOFT ACT5 ===
+Fecha: 2026-09-18
+Descripción / Objetivo: Sistema de Donaciones con Autenticación JWT, Ícono de Sesión y Ventana de Donaciones
+Ruta Local: /Users/royismaelsanchez/Documents/IngDeSoft Act5
+Lenguajes y Stack: Java 11 (Backend), HTML5 y CSS3 (Frontend)
+Criptografía: Tokens JWT (HMAC-SHA256, RFC 7519) + Passwords con PBKDF2
+
+=== COMANDOS RÁPIDOS ===
+- Compilar: ./compile.sh
+- Ejecutar servidor: ./run.sh
+- Ejecutar pruebas automáticas: javac -d bin $(find src/main/java src/test/java -name "*.java") && java -cp bin com.solidaria.TestSystem
+- URL Local: http://localhost:8080
