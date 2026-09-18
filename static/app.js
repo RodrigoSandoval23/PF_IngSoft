@@ -1,9 +1,3 @@
-/**
- * app.js - Solidaria Security Suite
- * Tema Oscuro Glassmorphism, RBAC Deny-by-Default, Flujo de Aprobación (HU03)
- * y Trazabilidad de Cuentas (RNF02).
- */
-
 const STORAGE_TOKEN_KEY = "solidaria_jwt_token";
 const STORAGE_USER_KEY = "solidaria_jwt_user";
 
@@ -17,12 +11,10 @@ try {
   currentUser = null;
 }
 
-// Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
   initAppState();
   initDonationControls();
 
-  // Cerrar menús al hacer click fuera
   document.addEventListener("click", (e) => {
     const widget = document.getElementById("user-session-widget");
     const dropdown = document.getElementById("user-dropdown");
@@ -31,10 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
-/* ==========================================================================
-   1. CONTROL DE VISTAS (AUTENTICACIÓN VS PORTAL)
-   ========================================================================== */
 
 function initAppState() {
   if (currentToken && currentUser && currentUser.status === "ACTIVO") {
@@ -74,10 +62,8 @@ function updateSessionIcon() {
   const rolePill = document.getElementById("dropdown-role-pill");
   const statusPill = document.getElementById("dropdown-status-pill");
   const rfcEl = document.getElementById("dropdown-rfc");
-  const entityNameEl = document.getElementById("dropdown-entity-name");
 
   const bannerNameEl = document.getElementById("banner-user-name");
-  const bannerEmailEl = document.getElementById("banner-user-email");
   const bannerRfcEl = document.getElementById("banner-user-rfc");
   const bannerEntityEl = document.getElementById("banner-entity-info");
 
@@ -103,24 +89,20 @@ function updateSessionIcon() {
     statusPill.className = currentUser.status === "ACTIVO" ? "status-pill status-active" : "status-pill status-pending";
   }
 
-  const rfcVal = currentUser.rfc || "Sin RFC registrado";
+  const rfcVal = currentUser.rfc || "Sin RFC";
   if (rfcEl) rfcEl.textContent = rfcVal;
-  if (entityNameEl) entityNameEl.textContent = currentUser.legal_name || currentUser.name;
 
-  if (bannerNameEl) bannerNameEl.textContent = (isAdmin ? "👑 Superusuario: " : "") + currentUser.name;
-  if (bannerEmailEl) bannerEmailEl.textContent = currentUser.email;
+  if (bannerNameEl) bannerNameEl.textContent = (isAdmin ? "👑 " : "") + currentUser.name;
   if (bannerRfcEl) bannerRfcEl.textContent = `RFC: ${rfcVal}`;
   if (bannerEntityEl) {
-    bannerEntityEl.textContent = currentUser.entity_type || (isAdmin ? "ADMINISTRACIÓN" : "ENTIDAD");
+    bannerEntityEl.textContent = currentUser.entity_type || (isAdmin ? "ADMIN" : "ENTIDAD");
   }
 
-  // Prellenar campo RFC en la ventana de donación con el RFC de la entidad si existe
   const donorRfcInput = document.getElementById("donor-rfc");
   if (donorRfcInput && currentUser.rfc && !donorRfcInput.value) {
     donorRfcInput.value = currentUser.rfc;
   }
 
-  // Mostrar accesos de administrador solo si el rol es ADMIN
   if (btnAdminPanel) {
     if (isAdmin) btnAdminPanel.classList.remove("hidden");
     else btnAdminPanel.classList.add("hidden");
@@ -147,10 +129,6 @@ function scrollToSection(id) {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: "smooth" });
 }
-
-/* ==========================================================================
-   2. PESTAÑAS Y CONTROL DE LOGIN / REGISTRO
-   ========================================================================== */
 
 function switchAuthTab(tab) {
   const btnLogin = document.getElementById("tab-login-btn");
@@ -181,19 +159,6 @@ function updateEntitySelection(radio) {
   }
 }
 
-function fillAdminCredentials() {
-  document.getElementById("login-email").value = "admin@donaciones.org";
-  document.getElementById("login-password").value = "admin1234";
-  showToast("Credenciales de Superusuario cargadas.", "info");
-}
-
-function fillDemoCredentials() {
-  document.getElementById("login-email").value = "demo@donaciones.org";
-  document.getElementById("login-password").value = "demo1234";
-  showToast("Credenciales de Donante Demo cargadas.", "info");
-}
-
-/* --- INICIO DE SESIÓN --- */
 async function handleLoginSubmit(event) {
   event.preventDefault();
   const email = document.getElementById("login-email").value.trim();
@@ -214,16 +179,14 @@ async function handleLoginSubmit(event) {
     const data = await res.json();
 
     if (res.status === 429) {
-      // Bloqueo por Fuerza Bruta (OWASP A07)
-      errorMsg.textContent = "🛡️ " + (data.detail || "Demasiados intentos fallidos. Acceso bloqueado por fuerza bruta.");
+      errorMsg.textContent = data.detail || "Demasiados intentos fallidos. Acceso temporalmente bloqueado.";
       errorMsg.classList.remove("hidden");
-      showToast("Bloqueo de seguridad: Límite de intentos superado.", "error");
+      showToast("Límite de intentos superado. Intenta más tarde.", "error");
       return;
     }
 
     if (res.status === 403) {
-      // Estado PENDIENTE o RECHAZADO (HU03)
-      errorMsg.textContent = "⏳ " + (data.detail || "Tu cuenta está pendiente de validación por un Administrador.");
+      errorMsg.textContent = data.detail || "Tu cuenta está pendiente de validación.";
       errorMsg.classList.remove("hidden");
       showPendingAlertModal();
       return;
@@ -235,17 +198,16 @@ async function handleLoginSubmit(event) {
       return;
     }
 
-    // Sesión exitosa
     currentToken = data.access_token;
     currentUser = data.user;
     localStorage.setItem(STORAGE_TOKEN_KEY, currentToken);
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentUser));
 
     showAppView();
-    showToast(`¡Bienvenido, ${currentUser.name}! Sesión JWT iniciada con éxito.`, "success");
+    showToast(`Bienvenido, ${currentUser.name}`, "success");
   } catch (err) {
     if (errorMsg) {
-      errorMsg.textContent = "Error al conectar con el servidor.";
+      errorMsg.textContent = "Error de conexión con el servidor.";
       errorMsg.classList.remove("hidden");
     }
   } finally {
@@ -253,7 +215,6 @@ async function handleLoginSubmit(event) {
   }
 }
 
-/* --- REGISTRO DE ENTIDADES Y USUARIOS --- */
 async function handleRegisterSubmit(event) {
   event.preventDefault();
   const rfc = document.getElementById("reg-rfc").value.trim().toUpperCase();
@@ -271,9 +232,8 @@ async function handleRegisterSubmit(event) {
 
   if (errorMsg) errorMsg.classList.add("hidden");
 
-  // Validación cliente de RFC (12 o 13 caracteres)
   if (rfc.length < 12 || rfc.length > 13) {
-    errorMsg.textContent = "El RFC debe tener exactamente 12 caracteres (personas morales) o 13 (físicas).";
+    errorMsg.textContent = "El RFC debe tener entre 12 y 13 caracteres.";
     errorMsg.classList.remove("hidden");
     return;
   }
@@ -303,17 +263,15 @@ async function handleRegisterSubmit(event) {
       return;
     }
 
-    // Registro completado en estado PENDIENTE (HU03)
     showPendingAlertModal();
-    showToast("¡Solicitud enviada! Tu cuenta está en revisión.", "info");
+    showToast("Solicitud enviada para revisión.", "info");
 
-    // Limpiar formulario y cambiar a pestaña de login
     document.getElementById("form-register").reset();
     switchAuthTab("login");
     document.getElementById("login-email").value = email;
   } catch (err) {
     if (errorMsg) {
-      errorMsg.textContent = "Error al conectar con el servidor.";
+      errorMsg.textContent = "Error de conexión con el servidor.";
       errorMsg.classList.remove("hidden");
     }
   } finally {
@@ -332,7 +290,7 @@ function logout(notify = true) {
 
   showLoginView();
   if (notify) {
-    showToast("Sesión cerrada. Token JWT destruido.", "info");
+    showToast("Sesión cerrada.", "info");
   }
 }
 
@@ -345,10 +303,6 @@ function closePendingAlertModal() {
   const modal = document.getElementById("pending-alert-modal");
   if (modal) modal.classList.add("hidden");
 }
-
-/* ==========================================================================
-   3. CLIENTE HTTP CON CABECERA BEARER JWT Y MANEJO DE RBAC
-   ========================================================================== */
 
 async function apiFetch(url, options = {}) {
   const headers = {
@@ -363,11 +317,11 @@ async function apiFetch(url, options = {}) {
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401 && currentToken) {
-    showToast("Tu sesión JWT ha expirado o es inválida. Ingresa de nuevo.", "error");
+    showToast("Tu sesión ha expirado. Ingresa nuevamente.", "error");
     logout(false);
   } else if (response.status === 403) {
     const data = await response.clone().json().catch(() => ({}));
-    showToast(data.detail || "Acceso denegado: Permisos insuficientes o cuenta no activa (RBAC).", "error");
+    showToast(data.detail || "Acceso restringido.", "error");
   }
 
   return response;
@@ -384,16 +338,11 @@ async function validateSession() {
       logout(false);
     }
   } catch (err) {
-    console.warn("No se pudo validar sesión:", err);
+    console.warn("Error al validar sesión:", err);
   }
 }
 
-/* ==========================================================================
-   4. CONTROL DE DONACIONES Y RFC FISCAL
-   ========================================================================== */
-
 function initDonationControls() {
-  // Selección de Causas
   const causeCards = document.querySelectorAll(".cause-card");
   const selectedCauseInput = document.getElementById("selected-cause-input");
 
@@ -406,7 +355,6 @@ function initDonationControls() {
     });
   });
 
-  // Botones de montos
   const amountPills = document.querySelectorAll(".amount-pill");
   const customAmountInput = document.getElementById("custom-amount-input");
   const btnDonationAmountText = document.getElementById("btn-donation-amount-text");
@@ -421,7 +369,6 @@ function initDonationControls() {
     });
   });
 
-  // Input de monto libre
   if (customAmountInput) {
     customAmountInput.addEventListener("input", (e) => {
       const val = parseFloat(e.target.value) || 0;
@@ -436,7 +383,6 @@ function initDonationControls() {
     });
   }
 
-  // Métodos de pago
   const paymentCards = document.querySelectorAll(".payment-card");
   paymentCards.forEach((card) => {
     card.addEventListener("click", () => {
@@ -498,7 +444,7 @@ async function handleDonationSubmit(event) {
   }
 
   if (!amount || amount <= 0) {
-    showToast("Por favor ingresa un monto válido mayor a $0.", "error");
+    showToast("Ingresa un monto válido mayor a 0.", "error");
     return;
   }
 
@@ -522,25 +468,21 @@ async function handleDonationSubmit(event) {
     const data = await res.json();
 
     if (!res.ok) {
-      showToast(data.detail || "Error al registrar la donación.", "error");
+      showToast(data.detail || "Error al registrar donación.", "error");
       return;
     }
 
     showReceiptModal(data);
     fetchStats();
-    showToast("¡Donación registrada en SQLite exitosamente!", "success");
+    showToast("Donación completada exitosamente.", "success");
 
     if (messageInput) messageInput.value = "";
   } catch (err) {
-    showToast("Error de conexión al procesar donación.", "error");
+    showToast("Error de conexión al donar.", "error");
   } finally {
     if (submitBtn) submitBtn.disabled = false;
   }
 }
-
-/* ==========================================================================
-   5. RECIBO Y ESTADÍSTICAS
-   ========================================================================== */
 
 function showReceiptModal(donation) {
   const elName = document.getElementById("rec-donor-name");
@@ -580,13 +522,9 @@ async function fetchStats() {
     if (countEl) countEl.textContent = stats.donations_count;
     if (fillEl) fillEl.style.width = `${stats.progress_percentage}%`;
   } catch (e) {
-    console.warn("No se pudieron cargar estadísticas:", e);
+    console.warn("Error al cargar estadísticas:", e);
   }
 }
-
-/* ==========================================================================
-   6. HISTORIAL DE DONACIONES (PROTEGIDO CON RBAC)
-   ========================================================================== */
 
 async function openMyDonationsModal() {
   const modal = document.getElementById("my-donations-modal");
@@ -594,20 +532,20 @@ async function openMyDonationsModal() {
   const dropdown = document.getElementById("user-dropdown");
   if (dropdown) dropdown.classList.add("hidden");
 
-  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Consultando historial protegido con JWT...</p>";
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Cargando historial...</p>";
   modal.classList.remove("hidden");
 
   try {
     const res = await apiFetch("/api/donations/my-donations");
     if (!res.ok) {
-      container.innerHTML = "<p class='glass-alert-error'>No se pudo cargar el historial. Permisos no válidos.</p>";
+      container.innerHTML = "<p class='glass-alert-error'>No se pudo cargar el historial.</p>";
       return;
     }
 
     const donations = await res.json();
 
     if (donations.length === 0) {
-      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>Aún no tienes donaciones registradas.</p>";
+      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>No tienes donaciones registradas.</p>";
       return;
     }
 
@@ -618,7 +556,7 @@ async function openMyDonationsModal() {
             <th>Folio</th>
             <th>Causa</th>
             <th>Monto</th>
-            <th>RFC Fiscal</th>
+            <th>RFC</th>
             <th>Método</th>
             <th>Fecha</th>
           </tr>
@@ -643,7 +581,7 @@ async function openMyDonationsModal() {
     html += `</tbody></table>`;
     container.innerHTML = html;
   } catch (err) {
-    container.innerHTML = "<p class='glass-alert-error'>Error al consultar las donaciones.</p>";
+    container.innerHTML = "<p class='glass-alert-error'>Error al consultar donaciones.</p>";
   }
 }
 
@@ -652,55 +590,13 @@ function closeMyDonationsModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-/* ==========================================================================
-   7. INSPECTOR DE TOKEN JWT (RFC 7519)
-   ========================================================================== */
-
-function openJwtInspectorModal() {
-  const modal = document.getElementById("jwt-inspector-modal");
-  const dropdown = document.getElementById("user-dropdown");
-  if (dropdown) dropdown.classList.add("hidden");
-
-  const headerDisplay = document.getElementById("jwt-header-display");
-  const payloadDisplay = document.getElementById("jwt-payload-display");
-
-  if (!currentToken) {
-    if (headerDisplay) headerDisplay.textContent = "{}";
-    if (payloadDisplay) payloadDisplay.textContent = "{}";
-  } else {
-    const parts = currentToken.split(".");
-    if (parts.length === 3) {
-      try {
-        const header = JSON.parse(atob(parts[0]));
-        const payload = JSON.parse(atob(parts[1]));
-        if (headerDisplay) headerDisplay.textContent = JSON.stringify(header, null, 2);
-        if (payloadDisplay) payloadDisplay.textContent = JSON.stringify(payload, null, 2);
-      } catch (e) {
-        if (headerDisplay) headerDisplay.textContent = "// Error al decodificar base64";
-        if (payloadDisplay) payloadDisplay.textContent = "// Error al decodificar base64";
-      }
-    }
-  }
-
-  if (modal) modal.classList.remove("hidden");
-}
-
-function closeJwtInspectorModal() {
-  const modal = document.getElementById("jwt-inspector-modal");
-  if (modal) modal.classList.add("hidden");
-}
-
-/* ==========================================================================
-   8. PANEL DE SUPERUSUARIO Y AUDITORÍA (HU03 & RNF02)
-   ========================================================================== */
-
 function openAdminPanelModal() {
   const modal = document.getElementById("admin-modal");
   const dropdown = document.getElementById("user-dropdown");
   if (dropdown) dropdown.classList.add("hidden");
 
   if (!currentUser || currentUser.role !== "ADMIN") {
-    showToast("Se requieren privilegios de Superusuario (ADMIN).", "error");
+    showToast("Acceso restringido a administradores.", "error");
     return;
   }
 
@@ -734,13 +630,12 @@ function switchAdminSubTab(tab) {
   else if (tab === "audit") loadAdminAuditLogs();
 }
 
-/* --- CARGAR SOLICITUDES PENDIENTES (HU03) --- */
 async function loadAdminPendingUsers() {
   const container = document.getElementById("admin-pending-container");
   const countBadge = document.getElementById("admin-pending-count");
   if (!container) return;
 
-  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Consultando solicitudes en SQLite...</p>";
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Cargando solicitudes...</p>";
 
   try {
     const res = await apiFetch("/api/admin/pending-users");
@@ -753,7 +648,7 @@ async function loadAdminPendingUsers() {
     if (countBadge) countBadge.textContent = pending.length;
 
     if (pending.length === 0) {
-      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>🎉 No hay solicitudes pendientes de validación.</p>";
+      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>No hay solicitudes pendientes.</p>";
       return;
     }
 
@@ -763,8 +658,8 @@ async function loadAdminPendingUsers() {
           <tr>
             <th>ID</th>
             <th>RFC</th>
-            <th>Razón Social / Entidad</th>
-            <th>Tipo de Entidad</th>
+            <th>Entidad</th>
+            <th>Tipo</th>
             <th>Representante</th>
             <th>Correo</th>
             <th>Rol</th>
@@ -786,10 +681,10 @@ async function loadAdminPendingUsers() {
           <td><span class="pill-role">${escapeHtml(u.role)}</span></td>
           <td>
             <button class="btn-action-sm btn-approve" onclick="changeUserStatus(${u.id}, 'ACTIVO')">
-              ✓ Aprobar
+              Aprobar
             </button>
             <button class="btn-action-sm btn-reject" onclick="changeUserStatus(${u.id}, 'RECHAZADO')">
-              ✕ Rechazar
+              Rechazar
             </button>
           </td>
         </tr>
@@ -799,11 +694,10 @@ async function loadAdminPendingUsers() {
     html += `</tbody></table>`;
     container.innerHTML = html;
   } catch (e) {
-    container.innerHTML = "<p class='glass-alert-error'>Error de conexión al cargar solicitudes.</p>";
+    container.innerHTML = "<p class='glass-alert-error'>Error al consultar solicitudes.</p>";
   }
 }
 
-/* --- CAMBIO DE ESTADO DE USUARIO (ACTIVO / RECHAZADO) --- */
 async function changeUserStatus(userId, newStatus) {
   try {
     const res = await apiFetch("/api/admin/users/status", {
@@ -817,20 +711,19 @@ async function changeUserStatus(userId, newStatus) {
       return;
     }
 
-    showToast(`Cuenta #${userId} actualizada a estado '${newStatus}'. Evento registrado en auditoría.`, "success");
+    showToast(`Cuenta #${userId} actualizada a '${newStatus}'.`, "success");
     loadAdminPendingUsers();
   } catch (err) {
     showToast("Error de conexión al actualizar estado.", "error");
   }
 }
 
-/* --- CARGAR USUARIOS --- */
 async function loadAdminUsers() {
   const container = document.getElementById("admin-users-container");
   const countBadge = document.getElementById("admin-users-count");
   if (!container) return;
 
-  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Cargando directorio...</p>";
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Cargando usuarios...</p>";
 
   try {
     const res = await apiFetch("/api/admin/users");
@@ -848,7 +741,7 @@ async function loadAdminUsers() {
           <tr>
             <th>ID</th>
             <th>RFC</th>
-            <th>Razón Social</th>
+            <th>Entidad</th>
             <th>Representante</th>
             <th>Correo</th>
             <th>Rol</th>
@@ -882,7 +775,6 @@ async function loadAdminUsers() {
   }
 }
 
-/* --- CARGAR DONACIONES --- */
 async function loadAdminDonations() {
   const container = document.getElementById("admin-donations-container");
   const countBadge = document.getElementById("admin-donations-count");
@@ -907,7 +799,7 @@ async function loadAdminDonations() {
             <th>Folio</th>
             <th>Donante</th>
             <th>Correo</th>
-            <th>RFC Fiscal</th>
+            <th>RFC</th>
             <th>Causa</th>
             <th>Monto</th>
             <th>Método</th>
@@ -940,12 +832,11 @@ async function loadAdminDonations() {
   }
 }
 
-/* --- CARGAR BITÁCORA DE AUDITORÍA (RNF02) --- */
 async function loadAdminAuditLogs() {
   const container = document.getElementById("admin-audit-container");
   if (!container) return;
 
-  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Consultando bitácora de auditoría inmutable en SQLite...</p>";
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Cargando bitácora de auditoría...</p>";
 
   try {
     const res = await apiFetch("/api/admin/audit-logs");
@@ -957,7 +848,7 @@ async function loadAdminAuditLogs() {
     const logs = await res.json();
 
     if (logs.length === 0) {
-      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>No hay eventos registrados en la auditoría.</p>";
+      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>No hay registros de auditoría.</p>";
       return;
     }
 
@@ -966,11 +857,11 @@ async function loadAdminAuditLogs() {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Fecha y Hora</th>
-            <th>IP Origen</th>
-            <th>Acción Registrada</th>
-            <th>Usuario / Correo</th>
-            <th>Detalles de Trazabilidad</th>
+            <th>Fecha</th>
+            <th>IP</th>
+            <th>Acción</th>
+            <th>Usuario</th>
+            <th>Detalles</th>
           </tr>
         </thead>
         <tbody>
@@ -992,7 +883,7 @@ async function loadAdminAuditLogs() {
           <td><small class="font-mono">${escapeHtml(l.fecha)}</small></td>
           <td><code class="badge-mono">${escapeHtml(l.ip_address || '127.0.0.1')}</code></td>
           <td><span class="${badgeClass}">${escapeHtml(l.accion)}</span></td>
-          <td><strong>${escapeHtml(l.email || (l.user_id ? 'ID #' + l.user_id : 'Anónimo'))}</strong></td>
+          <td><strong>${escapeHtml(l.email || (l.user_id ? '#' + l.user_id : '-'))}</strong></td>
           <td><small>${escapeHtml(l.detalles || '')}</small></td>
         </tr>
       `;
@@ -1001,13 +892,9 @@ async function loadAdminAuditLogs() {
     html += `</tbody></table>`;
     container.innerHTML = html;
   } catch (e) {
-    container.innerHTML = "<p class='glass-alert-error'>Error al consultar la bitácora de auditoría.</p>";
+    container.innerHTML = "<p class='glass-alert-error'>Error al consultar auditoría.</p>";
   }
 }
-
-/* ==========================================================================
-   9. UTILIDADES
-   ========================================================================== */
 
 function showToast(message, type = "info") {
   const container = document.getElementById("toast-container");
@@ -1023,7 +910,7 @@ function showToast(message, type = "info") {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(10px)";
     setTimeout(() => toast.remove(), 300);
-  }, 4000);
+  }, 3500);
 }
 
 function escapeHtml(str) {
