@@ -70,11 +70,15 @@ function updateSessionIcon() {
   const btnAdminPanel = document.getElementById("btn-admin-panel");
   const btnNavAdmin = document.getElementById("btn-nav-admin");
 
+  if (initialsEl) initialsEl.textContent = initials;
+  if (fullNameEl) fullNameEl.textContent = currentUser.name;
   const isAdmin = currentUser.role === "ADMIN";
 
   if (initialsEl) initialsEl.textContent = isAdmin ? "AD" : "DR";
   if (fullNameEl) fullNameEl.textContent = isAdmin ? currentUser.name : "Donante registrado";
   if (emailEl) emailEl.textContent = currentUser.email;
+
+  const isAdmin = currentUser.role === "ADMIN";
 
   if (displayNameEl) displayNameEl.textContent = isAdmin ? "👑 Admin" : "Donante registrado";
   if (displayRoleEl) displayRoleEl.textContent = currentUser.role;
@@ -496,6 +500,7 @@ function showReceiptModal(donation) {
   const elAmount = document.getElementById("rec-amount");
   const elId = document.getElementById("rec-id");
 
+  if (elName) elName.textContent = donation.donor_name;
   if (elName) elName.textContent = currentUser && currentUser.role === "ADMIN" ? donation.donor_name : "Donante registrado";
   if (elEmail) elEmail.textContent = donation.donor_email;
   if (elRfc) elRfc.textContent = donation.rfc && donation.rfc.trim() !== "" ? donation.rfc : "No solicitado";
