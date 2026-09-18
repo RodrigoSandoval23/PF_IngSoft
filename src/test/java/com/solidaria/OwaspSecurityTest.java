@@ -142,6 +142,26 @@ public class OwaspSecurityTest {
         } catch (Exception e) {
             recordFailure("A01.3", e.getMessage());
         }
+
+        // Prueba 1.4: Usuario en estado PENDIENTE no puede acceder a recursos mediante JWT (HU03 / RBAC Deny-by-Default)
+        try {
+            long ts = System.currentTimeMillis();
+            User pendingUser = DataStore.getInstance().registerUserWithEntity(
+                    "Usuario Pendiente", "pending_" + ts + "@test.org", "clave123", "DONANTE",
+                    "RFC" + (ts % 1000000000) + "ZZ", "Entidad Pendiente", "ORGANIZACION_SOCIAL", "127.0.0.1");
+
+            String pendingToken = JwtUtil.generateToken(pendingUser.getId(), pendingUser.getEmail(), pendingUser.getName(), pendingUser.getRole());
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/api/auth/me"))
+                    .header("Authorization", "Bearer " + pendingToken)
+                    .GET()
+                    .build();
+            HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            assertCondition(res.statusCode() == 403,
+                    "A01.4 - Denegar acceso a recursos protegidos para usuarios en estado 'PENDIENTE' (Retorna 403 Forbidden)");
+        } catch (Exception e) {
+            recordFailure("A01.4", e.getMessage());
+        }
         System.out.println();
     }
 
@@ -322,6 +342,26 @@ public class OwaspSecurityTest {
         assertCondition(claims == null,
                 "A07.3 - Invocación rechazada para tokens JWT cuya marca 'exp' ha expirado");
 
+        // Prueba 5.4: Detección y bloqueo contra ataques de Fuerza Bruta (Rate Limiting)
+        try {
+            String bruteForceEmail = "bruteforce_target_" + System.currentTimeMillis() + "@donaciones.org";
+            String wrongPw = "{\"email\":\"" + bruteForceEmail + "\",\"password\":\"clave_erronea\"}";
+            int lastStatus = 0;
+            for (int i = 0; i < 6; i++) {
+                HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(BASE_URL + "/api/auth/login"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(wrongPw))
+                        .build();
+                HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+                lastStatus = res.statusCode();
+            }
+            assertCondition(lastStatus == 429,
+                    "A07.4 - Mitigación de Fuerza Bruta: Respuesta 429 Too Many Requests tras múltiples intentos fallidos");
+        } catch (Exception e) {
+            recordFailure("A07.4", e.getMessage());
+        }
+
         System.out.println();
     }
 
@@ -332,7 +372,7 @@ public class OwaspSecurityTest {
         System.out.println("▶ [OWASP A08:2021] Verificando Integridad de Datos y Tokens...");
 
         // Prueba 6.1: Detección de token adulterado en el payload (Elevación de privilegios no autorizada)
-        String validToken = JwtUtil.generateToken(1, "demo@donaciones.org", "Demo User", "donor");
+        String validToken = JwtUtil.generateToken(1, "demo@donaciones.org", "Demo User", "DONANTE");
         String[] parts = validToken.split("\\.");
         // Alterar el payload original
         String tamperedPayload = Base64.getUrlEncoder().withoutPadding()
@@ -350,6 +390,15 @@ public class OwaspSecurityTest {
         Map<String, String> algNoneClaims = JwtUtil.validateToken(algNoneToken);
         assertCondition(algNoneClaims == null,
                 "A08.2 - Neutralización del ataque de algoritmo 'none' en JWT");
+
+        // Prueba 6.3: Registro inmutable en auditoria_cuentas (RNF02)
+        try {
+            var logs = DataStore.getInstance().getAuditLogs();
+            assertCondition(!logs.isEmpty() && logs.get(0).getFecha() != null,
+                    "A08.3 - Trazabilidad y no repudio: Registro persistido en tabla auditoria_cuentas (RNF02)");
+        } catch (Exception e) {
+            recordFailure("A08.3", e.getMessage());
+        }
 
         System.out.println();
     }

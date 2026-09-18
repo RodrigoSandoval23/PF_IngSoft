@@ -95,7 +95,11 @@ public class HttpHelper {
 
         try {
             int userId = Integer.parseInt(claims.get("sub"));
-            return DataStore.getInstance().getUserById(userId);
+            User user = DataStore.getInstance().getUserById(userId);
+            if (user != null && "ACTIVO".equalsIgnoreCase(user.getStatus())) {
+                return user;
+            }
+            return null;
         } catch (Exception e) {
             return null;
         }

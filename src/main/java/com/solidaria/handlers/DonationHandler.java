@@ -83,9 +83,8 @@ public class DonationHandler implements HttpHandler {
     }
 
     private void handleGetMyDonations(HttpExchange exchange) throws IOException {
-        User authUser = HttpHelper.getAuthenticatedUser(exchange);
+        User authUser = com.solidaria.auth.RbacFilter.authenticateAndAuthorize(exchange, "ADMIN", "DONANTE", "BENEFICIARIO");
         if (authUser == null) {
-            HttpHelper.sendError(exchange, 401, "Se requiere iniciar sesión con JWT para ver su historial.");
             return;
         }
 

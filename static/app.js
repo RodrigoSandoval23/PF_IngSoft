@@ -1,6 +1,7 @@
 /**
- * app.js - Lógica de cliente: Pantalla de Login, Autenticación JWT,
- * Ícono de Sesión, Ventana de Donaciones con RFC y Panel de Superusuario.
+ * app.js - Solidaria Security Suite
+ * Tema Oscuro Glassmorphism, RBAC Deny-by-Default, Flujo de Aprobación (HU03)
+ * y Trazabilidad de Cuentas (RNF02).
  */
 
 const STORAGE_TOKEN_KEY = "solidaria_jwt_token";
@@ -21,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initAppState();
   initDonationControls();
 
-  // Cerrar menú dropdown al hacer click fuera del widget de sesión
+  // Cerrar menús al hacer click fuera
   document.addEventListener("click", (e) => {
     const widget = document.getElementById("user-session-widget");
     const dropdown = document.getElementById("user-dropdown");
@@ -32,11 +33,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ==========================================================================
-   1. CONTROL DE VISTAS (LOGIN VS VENTANA DE DONACIONES)
+   1. CONTROL DE VISTAS (AUTENTICACIÓN VS PORTAL)
    ========================================================================== */
 
 function initAppState() {
-  if (currentToken && currentUser) {
+  if (currentToken && currentUser && currentUser.status === "ACTIVO") {
     showAppView();
     validateSession();
   } else {
@@ -67,12 +68,19 @@ function updateSessionIcon() {
   const initials = getInitials(currentUser.name);
   const initialsEl = document.getElementById("user-initials");
   const displayNameEl = document.getElementById("user-display-name");
+  const displayRoleEl = document.getElementById("user-display-role");
   const fullNameEl = document.getElementById("dropdown-full-name");
   const emailEl = document.getElementById("dropdown-email");
+  const rolePill = document.getElementById("dropdown-role-pill");
+  const statusPill = document.getElementById("dropdown-status-pill");
+  const rfcEl = document.getElementById("dropdown-rfc");
+  const entityNameEl = document.getElementById("dropdown-entity-name");
+
   const bannerNameEl = document.getElementById("banner-user-name");
   const bannerEmailEl = document.getElementById("banner-user-email");
-  const jwtBadge = document.querySelector(".jwt-badge");
-  const rolePill = document.querySelector(".role-pill");
+  const bannerRfcEl = document.getElementById("banner-user-rfc");
+  const bannerEntityEl = document.getElementById("banner-entity-info");
+
   const btnAdminPanel = document.getElementById("btn-admin-panel");
   const btnNavAdmin = document.getElementById("btn-nav-admin");
 
@@ -80,57 +88,46 @@ function updateSessionIcon() {
   if (fullNameEl) fullNameEl.textContent = currentUser.name;
   if (emailEl) emailEl.textContent = currentUser.email;
 
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = currentUser.role === "ADMIN";
 
-  if (displayNameEl) {
-    displayNameEl.textContent = (isAdmin ? "👑 " : "") + currentUser.name.split(" ")[0];
-  }
-
-  if (jwtBadge) {
-    if (isAdmin) {
-      jwtBadge.textContent = "👑 Superusuario";
-      jwtBadge.classList.add("admin-badge");
-    } else {
-      jwtBadge.textContent = "● JWT Activo";
-      jwtBadge.classList.remove("admin-badge");
-    }
-  }
+  if (displayNameEl) displayNameEl.textContent = (isAdmin ? "👑 " : "") + currentUser.name.split(" ")[0];
+  if (displayRoleEl) displayRoleEl.textContent = currentUser.role;
 
   if (rolePill) {
-    if (isAdmin) {
-      rolePill.textContent = "👑 Superusuario (Acceso Total)";
-      rolePill.classList.add("admin-pill");
-    } else {
-      rolePill.textContent = "Donante Autenticado";
-      rolePill.classList.remove("admin-pill");
-    }
+    rolePill.textContent = currentUser.role;
+    rolePill.className = isAdmin ? "pill-role admin-pill" : "pill-role";
   }
 
+  if (statusPill) {
+    statusPill.textContent = currentUser.status || "ACTIVO";
+    statusPill.className = currentUser.status === "ACTIVO" ? "status-pill status-active" : "status-pill status-pending";
+  }
+
+  const rfcVal = currentUser.rfc || "Sin RFC registrado";
+  if (rfcEl) rfcEl.textContent = rfcVal;
+  if (entityNameEl) entityNameEl.textContent = currentUser.legal_name || currentUser.name;
+
+  if (bannerNameEl) bannerNameEl.textContent = (isAdmin ? "👑 Superusuario: " : "") + currentUser.name;
+  if (bannerEmailEl) bannerEmailEl.textContent = currentUser.email;
+  if (bannerRfcEl) bannerRfcEl.textContent = `RFC: ${rfcVal}`;
+  if (bannerEntityEl) {
+    bannerEntityEl.textContent = currentUser.entity_type || (isAdmin ? "ADMINISTRACIÓN" : "ENTIDAD");
+  }
+
+  // Prellenar campo RFC en la ventana de donación con el RFC de la entidad si existe
+  const donorRfcInput = document.getElementById("donor-rfc");
+  if (donorRfcInput && currentUser.rfc && !donorRfcInput.value) {
+    donorRfcInput.value = currentUser.rfc;
+  }
+
+  // Mostrar accesos de administrador solo si el rol es ADMIN
   if (btnAdminPanel) {
-    if (isAdmin) {
-      btnAdminPanel.classList.remove("hidden");
-    } else {
-      btnAdminPanel.classList.add("hidden");
-    }
+    if (isAdmin) btnAdminPanel.classList.remove("hidden");
+    else btnAdminPanel.classList.add("hidden");
   }
-
   if (btnNavAdmin) {
-    if (isAdmin) {
-      btnNavAdmin.classList.remove("hidden");
-    } else {
-      btnNavAdmin.classList.add("hidden");
-    }
-  }
-
-  if (bannerNameEl) {
-    bannerNameEl.textContent = isAdmin
-      ? `👑 Superusuario: ${currentUser.name}`
-      : currentUser.name;
-  }
-  if (bannerEmailEl) {
-    bannerEmailEl.textContent = isAdmin
-      ? `Acceso total habilitado a SQLite (${currentUser.email})`
-      : `Vincular aporte a: ${currentUser.email}`;
+    if (isAdmin) btnNavAdmin.classList.remove("hidden");
+    else btnNavAdmin.classList.add("hidden");
   }
 }
 
@@ -152,10 +149,10 @@ function scrollToSection(id) {
 }
 
 /* ==========================================================================
-   2. ACCIONES DE LOGIN / REGISTRO
+   2. PESTAÑAS Y CONTROL DE LOGIN / REGISTRO
    ========================================================================== */
 
-function switchLoginTab(tab) {
+function switchAuthTab(tab) {
   const btnLogin = document.getElementById("tab-login-btn");
   const btnRegister = document.getElementById("tab-register-btn");
   const formLogin = document.getElementById("form-login");
@@ -177,18 +174,26 @@ function switchLoginTab(tab) {
   }
 }
 
+function updateEntitySelection(radio) {
+  document.querySelectorAll(".entity-radio-card").forEach(c => c.classList.remove("active"));
+  if (radio && radio.closest(".entity-radio-card")) {
+    radio.closest(".entity-radio-card").classList.add("active");
+  }
+}
+
 function fillAdminCredentials() {
   document.getElementById("login-email").value = "admin@donaciones.org";
   document.getElementById("login-password").value = "admin1234";
-  showToast("Credenciales de Superusuario listas.", "info");
+  showToast("Credenciales de Superusuario cargadas.", "info");
 }
 
 function fillDemoCredentials() {
   document.getElementById("login-email").value = "demo@donaciones.org";
   document.getElementById("login-password").value = "demo1234";
-  showToast("Credenciales de Donante listas.", "info");
+  showToast("Credenciales de Donante Demo cargadas.", "info");
 }
 
+/* --- INICIO DE SESIÓN --- */
 async function handleLoginSubmit(event) {
   event.preventDefault();
   const email = document.getElementById("login-email").value.trim();
@@ -208,19 +213,36 @@ async function handleLoginSubmit(event) {
 
     const data = await res.json();
 
+    if (res.status === 429) {
+      // Bloqueo por Fuerza Bruta (OWASP A07)
+      errorMsg.textContent = "🛡️ " + (data.detail || "Demasiados intentos fallidos. Acceso bloqueado por fuerza bruta.");
+      errorMsg.classList.remove("hidden");
+      showToast("Bloqueo de seguridad: Límite de intentos superado.", "error");
+      return;
+    }
+
+    if (res.status === 403) {
+      // Estado PENDIENTE o RECHAZADO (HU03)
+      errorMsg.textContent = "⏳ " + (data.detail || "Tu cuenta está pendiente de validación por un Administrador.");
+      errorMsg.classList.remove("hidden");
+      showPendingAlertModal();
+      return;
+    }
+
     if (!res.ok) {
       errorMsg.textContent = data.detail || "Credenciales inválidas.";
       errorMsg.classList.remove("hidden");
       return;
     }
 
+    // Sesión exitosa
     currentToken = data.access_token;
     currentUser = data.user;
     localStorage.setItem(STORAGE_TOKEN_KEY, currentToken);
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentUser));
 
     showAppView();
-    showToast(`¡Bienvenido, ${currentUser.name}!`, "success");
+    showToast(`¡Bienvenido, ${currentUser.name}! Sesión JWT iniciada con éxito.`, "success");
   } catch (err) {
     if (errorMsg) {
       errorMsg.textContent = "Error al conectar con el servidor.";
@@ -231,39 +253,64 @@ async function handleLoginSubmit(event) {
   }
 }
 
+/* --- REGISTRO DE ENTIDADES Y USUARIOS --- */
 async function handleRegisterSubmit(event) {
   event.preventDefault();
+  const rfc = document.getElementById("reg-rfc").value.trim().toUpperCase();
+  const legalName = document.getElementById("reg-legal-name").value.trim();
+  const entityTypeRadio = document.querySelector("input[name='reg_entity_type']:checked");
+  const entityType = entityTypeRadio ? entityTypeRadio.value : "ORGANIZACION_SOCIAL";
+
   const name = document.getElementById("reg-name").value.trim();
-  const email = document.getElementById("reg-email").value.trim();
+  const role = document.getElementById("reg-role").value;
+  const email = document.getElementById("reg-email").value.trim().toLowerCase();
   const password = document.getElementById("reg-password").value;
+
   const errorMsg = document.getElementById("auth-error-msg");
   const submitBtn = document.getElementById("btn-submit-register");
 
   if (errorMsg) errorMsg.classList.add("hidden");
+
+  // Validación cliente de RFC (12 o 13 caracteres)
+  if (rfc.length < 12 || rfc.length > 13) {
+    errorMsg.textContent = "El RFC debe tener exactamente 12 caracteres (personas morales) o 13 (físicas).";
+    errorMsg.classList.remove("hidden");
+    return;
+  }
+
   if (submitBtn) submitBtn.disabled = true;
 
   try {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        role,
+        rfc,
+        legal_name: legalName,
+        entity_type: entityType
+      }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      errorMsg.textContent = data.detail || "Error en el registro.";
+      errorMsg.textContent = data.detail || "Error en el registro de la entidad.";
       errorMsg.classList.remove("hidden");
       return;
     }
 
-    currentToken = data.access_token;
-    currentUser = data.user;
-    localStorage.setItem(STORAGE_TOKEN_KEY, currentToken);
-    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentUser));
+    // Registro completado en estado PENDIENTE (HU03)
+    showPendingAlertModal();
+    showToast("¡Solicitud enviada! Tu cuenta está en revisión.", "info");
 
-    showAppView();
-    showToast(`¡Cuenta creada con éxito para ${currentUser.name}!`, "success");
+    // Limpiar formulario y cambiar a pestaña de login
+    document.getElementById("form-register").reset();
+    switchAuthTab("login");
+    document.getElementById("login-email").value = email;
   } catch (err) {
     if (errorMsg) {
       errorMsg.textContent = "Error al conectar con el servidor.";
@@ -285,12 +332,22 @@ function logout(notify = true) {
 
   showLoginView();
   if (notify) {
-    showToast("Sesión cerrada exitosamente.", "info");
+    showToast("Sesión cerrada. Token JWT destruido.", "info");
   }
 }
 
+function showPendingAlertModal() {
+  const modal = document.getElementById("pending-alert-modal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closePendingAlertModal() {
+  const modal = document.getElementById("pending-alert-modal");
+  if (modal) modal.classList.add("hidden");
+}
+
 /* ==========================================================================
-   3. CLIENTE HTTP CON CABECERA BEARER JWT
+   3. CLIENTE HTTP CON CABECERA BEARER JWT Y MANEJO DE RBAC
    ========================================================================== */
 
 async function apiFetch(url, options = {}) {
@@ -306,8 +363,11 @@ async function apiFetch(url, options = {}) {
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401 && currentToken) {
-    showToast("Tu sesión JWT ha expirado. Ingresa de nuevo.", "error");
+    showToast("Tu sesión JWT ha expirado o es inválida. Ingresa de nuevo.", "error");
     logout(false);
+  } else if (response.status === 403) {
+    const data = await response.clone().json().catch(() => ({}));
+    showToast(data.detail || "Acceso denegado: Permisos insuficientes o cuenta no activa (RBAC).", "error");
   }
 
   return response;
@@ -333,27 +393,27 @@ async function validateSession() {
    ========================================================================== */
 
 function initDonationControls() {
-  // Selección de Causas (pills simplificadas)
-  const causePills = document.querySelectorAll(".cause-pill, .cause-option");
+  // Selección de Causas
+  const causeCards = document.querySelectorAll(".cause-card");
   const selectedCauseInput = document.getElementById("selected-cause-input");
 
-  causePills.forEach((pill) => {
-    pill.addEventListener("click", () => {
-      causePills.forEach((p) => p.classList.remove("active"));
-      pill.classList.add("active");
-      const causeName = pill.getAttribute("data-cause");
+  causeCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      causeCards.forEach((c) => c.classList.remove("active"));
+      card.classList.add("active");
+      const causeName = card.getAttribute("data-cause");
       if (selectedCauseInput) selectedCauseInput.value = causeName;
     });
   });
 
-  // Botones de montos predefinidos
-  const amountButtons = document.querySelectorAll(".amount-btn");
+  // Botones de montos
+  const amountPills = document.querySelectorAll(".amount-pill");
   const customAmountInput = document.getElementById("custom-amount-input");
   const btnDonationAmountText = document.getElementById("btn-donation-amount-text");
 
-  amountButtons.forEach((btn) => {
+  amountPills.forEach((btn) => {
     btn.addEventListener("click", () => {
-      amountButtons.forEach((b) => b.classList.remove("active"));
+      amountPills.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       const val = btn.getAttribute("data-val");
       if (customAmountInput) customAmountInput.value = val;
@@ -365,7 +425,7 @@ function initDonationControls() {
   if (customAmountInput) {
     customAmountInput.addEventListener("input", (e) => {
       const val = parseFloat(e.target.value) || 0;
-      amountButtons.forEach((b) => {
+      amountPills.forEach((b) => {
         if (b.getAttribute("data-val") === e.target.value) {
           b.classList.add("active");
         } else {
@@ -377,7 +437,7 @@ function initDonationControls() {
   }
 
   // Métodos de pago
-  const paymentCards = document.querySelectorAll(".payment-method-card");
+  const paymentCards = document.querySelectorAll(".payment-card");
   paymentCards.forEach((card) => {
     card.addEventListener("click", () => {
       paymentCards.forEach((c) => c.classList.remove("active"));
@@ -397,7 +457,6 @@ function initDonationControls() {
   });
 }
 
-// Toggle para mostrar/ocultar el campo RFC
 function toggleRfcField() {
   const check = document.getElementById("tax-deductible-check");
   const rfcGroup = document.getElementById("rfc-field-group");
@@ -406,10 +465,14 @@ function toggleRfcField() {
 
   if (check.checked) {
     rfcGroup.classList.remove("hidden");
-    if (rfcInput) rfcInput.focus();
+    if (rfcInput) {
+      if (!rfcInput.value && currentUser && currentUser.rfc) {
+        rfcInput.value = currentUser.rfc;
+      }
+      rfcInput.focus();
+    }
   } else {
     rfcGroup.classList.add("hidden");
-    if (rfcInput) rfcInput.value = "";
   }
 }
 
@@ -426,15 +489,12 @@ async function handleDonationSubmit(event) {
   const selectedPayment = document.querySelector("input[name='payment_method']:checked");
   const paymentMethod = selectedPayment ? selectedPayment.value : "tarjeta";
 
-  // Extraer RFC si el checkbox está activo
   const taxCheck = document.getElementById("tax-deductible-check");
   let rfc = null;
   if (taxCheck && taxCheck.checked) {
     const rfcInput = document.getElementById("donor-rfc");
     const rfcVal = rfcInput ? rfcInput.value.trim().toUpperCase() : "";
-    if (rfcVal) {
-      rfc = rfcVal;
-    }
+    if (rfcVal) rfc = rfcVal;
   }
 
   if (!amount || amount <= 0) {
@@ -462,21 +522,17 @@ async function handleDonationSubmit(event) {
     const data = await res.json();
 
     if (!res.ok) {
-      showToast(data.detail || "Error al procesar la donación.", "error");
+      showToast(data.detail || "Error al registrar la donación.", "error");
       return;
     }
 
-    // Mostrar recibo y actualizar estadísticas
     showReceiptModal(data);
     fetchStats();
-    showToast("¡Donación procesada exitosamente!", "success");
+    showToast("¡Donación registrada en SQLite exitosamente!", "success");
 
-    // Limpiar campos opcionales
     if (messageInput) messageInput.value = "";
-    if (taxCheck) taxCheck.checked = false;
-    toggleRfcField();
   } catch (err) {
-    showToast("Error de conexión al registrar la donación.", "error");
+    showToast("Error de conexión al procesar donación.", "error");
   } finally {
     if (submitBtn) submitBtn.disabled = false;
   }
@@ -492,7 +548,6 @@ function showReceiptModal(donation) {
   const elRfc = document.getElementById("rec-rfc");
   const elCause = document.getElementById("rec-cause");
   const elAmount = document.getElementById("rec-amount");
-  const elPayment = document.getElementById("rec-payment");
   const elId = document.getElementById("rec-id");
 
   if (elName) elName.textContent = donation.donor_name;
@@ -500,7 +555,6 @@ function showReceiptModal(donation) {
   if (elRfc) elRfc.textContent = donation.rfc && donation.rfc.trim() !== "" ? donation.rfc : "No solicitado";
   if (elCause) elCause.textContent = donation.cause;
   if (elAmount) elAmount.textContent = `$${Number(donation.amount).toFixed(2)} USD`;
-  if (elPayment) elPayment.textContent = donation.payment_method.toUpperCase();
   if (elId) elId.textContent = `#DON-${donation.id.toString().padStart(5, "0")}`;
 
   const modal = document.getElementById("receipt-modal");
@@ -531,7 +585,7 @@ async function fetchStats() {
 }
 
 /* ==========================================================================
-   6. HISTORIAL DE DONACIONES (PROTEGIDO CON JWT)
+   6. HISTORIAL DE DONACIONES (PROTEGIDO CON RBAC)
    ========================================================================== */
 
 async function openMyDonationsModal() {
@@ -540,31 +594,31 @@ async function openMyDonationsModal() {
   const dropdown = document.getElementById("user-dropdown");
   if (dropdown) dropdown.classList.add("hidden");
 
-  container.innerHTML = "<p style='padding:1.5rem; color:#64748b; text-align:center;'>Cargando historial protegido...</p>";
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Consultando historial protegido con JWT...</p>";
   modal.classList.remove("hidden");
 
   try {
     const res = await apiFetch("/api/donations/my-donations");
     if (!res.ok) {
-      container.innerHTML = "<p class='error-badge'>No se pudo cargar el historial. Sesión no válida.</p>";
+      container.innerHTML = "<p class='glass-alert-error'>No se pudo cargar el historial. Permisos no válidos.</p>";
       return;
     }
 
     const donations = await res.json();
 
     if (donations.length === 0) {
-      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#64748b;'>Aún no tienes donaciones registradas con tu cuenta.</p>";
+      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>Aún no tienes donaciones registradas.</p>";
       return;
     }
 
     let html = `
-      <table class="donations-table">
+      <table class="glass-table">
         <thead>
           <tr>
             <th>Folio</th>
             <th>Causa</th>
             <th>Monto</th>
-            <th>RFC</th>
+            <th>RFC Fiscal</th>
             <th>Método</th>
             <th>Fecha</th>
           </tr>
@@ -573,12 +627,12 @@ async function openMyDonationsModal() {
     `;
 
     donations.forEach((d) => {
-      const rfcDisplay = d.rfc && d.rfc.trim() !== "" ? `<span class="badge-rfc">${escapeHtml(d.rfc)}</span>` : `<span style="color:#94a3b8;">-</span>`;
+      const rfcDisplay = d.rfc && d.rfc.trim() !== "" ? `<code class="badge-mono text-neon">${escapeHtml(d.rfc)}</code>` : `<span style="color:#64748b;">-</span>`;
       html += `
         <tr>
-          <td><span class="code-tag">#DON-${d.id.toString().padStart(4, "0")}</span></td>
+          <td><code class="badge-mono">#DON-${d.id.toString().padStart(4, "0")}</code></td>
           <td><strong>${escapeHtml(d.cause)}</strong></td>
-          <td class="text-green font-bold">$${Number(d.amount).toFixed(2)}</td>
+          <td class="text-emerald-lg font-mono">$${Number(d.amount).toFixed(2)}</td>
           <td>${rfcDisplay}</td>
           <td>${escapeHtml(d.payment_method)}</td>
           <td><small>${escapeHtml(d.created_at)}</small></td>
@@ -589,7 +643,7 @@ async function openMyDonationsModal() {
     html += `</tbody></table>`;
     container.innerHTML = html;
   } catch (err) {
-    container.innerHTML = "<p class='error-badge'>Error al consultar la API de donaciones.</p>";
+    container.innerHTML = "<p class='glass-alert-error'>Error al consultar las donaciones.</p>";
   }
 }
 
@@ -637,7 +691,7 @@ function closeJwtInspectorModal() {
 }
 
 /* ==========================================================================
-   8. PANEL DE SUPERUSUARIO (BASE DE DATOS SQLITE)
+   8. PANEL DE SUPERUSUARIO Y AUDITORÍA (HU03 & RNF02)
    ========================================================================== */
 
 function openAdminPanelModal() {
@@ -645,13 +699,13 @@ function openAdminPanelModal() {
   const dropdown = document.getElementById("user-dropdown");
   if (dropdown) dropdown.classList.add("hidden");
 
-  if (!currentUser || currentUser.role !== "admin") {
-    showToast("Se requieren privilegios de Superusuario.", "error");
+  if (!currentUser || currentUser.role !== "ADMIN") {
+    showToast("Se requieren privilegios de Superusuario (ADMIN).", "error");
     return;
   }
 
   if (modal) modal.classList.remove("hidden");
-  loadAdminData();
+  switchAdminSubTab("pending");
 }
 
 function closeAdminPanelModal() {
@@ -659,120 +713,295 @@ function closeAdminPanelModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-function switchAdminTab(tab) {
-  const tabUsersBtn = document.getElementById("tab-admin-users-btn");
-  const tabDonationsBtn = document.getElementById("tab-admin-donations-btn");
-  const usersContainer = document.getElementById("admin-users-container");
-  const donationsContainer = document.getElementById("admin-donations-container");
+function switchAdminSubTab(tab) {
+  const tabs = ["pending", "users", "donations", "audit"];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-adm-${t}`);
+    const panel = document.getElementById(`admin-${t}-panel`);
+    if (btn) {
+      if (t === tab) btn.classList.add("active");
+      else btn.classList.remove("active");
+    }
+    if (panel) {
+      if (t === tab) panel.classList.remove("hidden");
+      else panel.classList.add("hidden");
+    }
+  });
 
-  if (tab === "users") {
-    if (tabUsersBtn) tabUsersBtn.classList.add("active");
-    if (tabDonationsBtn) tabDonationsBtn.classList.remove("active");
-    if (usersContainer) usersContainer.classList.remove("hidden");
-    if (donationsContainer) donationsContainer.classList.add("hidden");
-  } else {
-    if (tabDonationsBtn) tabDonationsBtn.classList.add("active");
-    if (tabUsersBtn) tabUsersBtn.classList.remove("active");
-    if (donationsContainer) donationsContainer.classList.remove("hidden");
-    if (usersContainer) usersContainer.classList.add("hidden");
+  if (tab === "pending") loadAdminPendingUsers();
+  else if (tab === "users") loadAdminUsers();
+  else if (tab === "donations") loadAdminDonations();
+  else if (tab === "audit") loadAdminAuditLogs();
+}
+
+/* --- CARGAR SOLICITUDES PENDIENTES (HU03) --- */
+async function loadAdminPendingUsers() {
+  const container = document.getElementById("admin-pending-container");
+  const countBadge = document.getElementById("admin-pending-count");
+  if (!container) return;
+
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Consultando solicitudes en SQLite...</p>";
+
+  try {
+    const res = await apiFetch("/api/admin/pending-users");
+    if (!res.ok) {
+      container.innerHTML = "<p class='glass-alert-error'>Error al consultar solicitudes.</p>";
+      return;
+    }
+
+    const pending = await res.json();
+    if (countBadge) countBadge.textContent = pending.length;
+
+    if (pending.length === 0) {
+      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>🎉 No hay solicitudes pendientes de validación.</p>";
+      return;
+    }
+
+    let html = `
+      <table class="glass-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>RFC</th>
+            <th>Razón Social / Entidad</th>
+            <th>Tipo de Entidad</th>
+            <th>Representante</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    pending.forEach(u => {
+      html += `
+        <tr>
+          <td><code class="badge-mono">#${u.id}</code></td>
+          <td><code class="badge-mono text-neon font-bold">${escapeHtml(u.rfc || 'SIN RFC')}</code></td>
+          <td><strong>${escapeHtml(u.legal_name || u.name)}</strong></td>
+          <td><span class="status-pill status-pending">${escapeHtml(u.entity_type || 'ORGANIZACION_SOCIAL')}</span></td>
+          <td>${escapeHtml(u.name)}</td>
+          <td><small>${escapeHtml(u.email)}</small></td>
+          <td><span class="pill-role">${escapeHtml(u.role)}</span></td>
+          <td>
+            <button class="btn-action-sm btn-approve" onclick="changeUserStatus(${u.id}, 'ACTIVO')">
+              ✓ Aprobar
+            </button>
+            <button class="btn-action-sm btn-reject" onclick="changeUserStatus(${u.id}, 'RECHAZADO')">
+              ✕ Rechazar
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = "<p class='glass-alert-error'>Error de conexión al cargar solicitudes.</p>";
   }
 }
 
-async function loadAdminData() {
-  const usersContainer = document.getElementById("admin-users-container");
-  const donationsContainer = document.getElementById("admin-donations-container");
-  const usersCountEl = document.getElementById("admin-users-count");
-  const donationsCountEl = document.getElementById("admin-donations-count");
-
-  if (usersContainer) usersContainer.innerHTML = "<p style='padding:1.5rem; color:#64748b; text-align:center;'>Cargando usuarios desde SQLite...</p>";
-  if (donationsContainer) donationsContainer.innerHTML = "<p style='padding:1.5rem; color:#64748b; text-align:center;'>Cargando donaciones desde SQLite...</p>";
-
-  // 1. Usuarios
+/* --- CAMBIO DE ESTADO DE USUARIO (ACTIVO / RECHAZADO) --- */
+async function changeUserStatus(userId, newStatus) {
   try {
-    const resUsers = await apiFetch("/api/admin/users");
-    if (resUsers.ok) {
-      const users = await resUsers.json();
-      if (usersCountEl) usersCountEl.textContent = users.length;
+    const res = await apiFetch("/api/admin/users/status", {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId, status: newStatus }),
+    });
 
-      let htmlUsers = `
-        <table class="donations-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Correo Electrónico</th>
-              <th>Rol</th>
-              <th>Fecha de Registro</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-      users.forEach(u => {
-        const isAdmin = u.role === "admin";
-        htmlUsers += `
-          <tr>
-            <td><strong>#${u.id}</strong></td>
-            <td>${escapeHtml(u.name)}</td>
-            <td>${escapeHtml(u.email)}</td>
-            <td><span class="${isAdmin ? 'role-pill admin-pill' : 'role-pill'}">${isAdmin ? '👑 Superusuario' : '👤 Donante'}</span></td>
-            <td><small>${escapeHtml(u.created_at)}</small></td>
-          </tr>
-        `;
-      });
-      htmlUsers += `</tbody></table>`;
-      if (usersContainer) usersContainer.innerHTML = htmlUsers;
-    } else {
-      if (usersContainer) usersContainer.innerHTML = "<p class='error-badge'>Error al cargar usuarios de la BD.</p>";
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.detail || "Error al actualizar estado.", "error");
+      return;
     }
-  } catch (e) {
-    if (usersContainer) usersContainer.innerHTML = "<p class='error-badge'>Error de conexión con la BD.</p>";
+
+    showToast(`Cuenta #${userId} actualizada a estado '${newStatus}'. Evento registrado en auditoría.`, "success");
+    loadAdminPendingUsers();
+  } catch (err) {
+    showToast("Error de conexión al actualizar estado.", "error");
   }
+}
 
-  // 2. Donaciones
+/* --- CARGAR USUARIOS --- */
+async function loadAdminUsers() {
+  const container = document.getElementById("admin-users-container");
+  const countBadge = document.getElementById("admin-users-count");
+  if (!container) return;
+
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Cargando directorio...</p>";
+
   try {
-    const resDonations = await apiFetch("/api/admin/donations");
-    if (resDonations.ok) {
-      const donations = await resDonations.json();
-      if (donationsCountEl) donationsCountEl.textContent = donations.length;
-
-      let htmlDons = `
-        <table class="donations-table">
-          <thead>
-            <tr>
-              <th>Folio</th>
-              <th>Donante</th>
-              <th>Correo</th>
-              <th>RFC</th>
-              <th>Causa</th>
-              <th>Monto</th>
-              <th>Método</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-      donations.forEach(d => {
-        const rfcDisplay = d.rfc && d.rfc.trim() !== "" ? `<span class="badge-rfc">${escapeHtml(d.rfc)}</span>` : `<span style="color:#94a3b8;">-</span>`;
-        htmlDons += `
-          <tr>
-            <td><span class="code-tag">#DON-${String(d.id).padStart(4, '0')}</span></td>
-            <td><strong>${escapeHtml(d.donor_name)}</strong></td>
-            <td><small>${escapeHtml(d.donor_email)}</small></td>
-            <td>${rfcDisplay}</td>
-            <td>${escapeHtml(d.cause)}</td>
-            <td class="text-green font-bold">$${Number(d.amount).toFixed(2)}</td>
-            <td>${escapeHtml(d.payment_method)}</td>
-            <td><small>${escapeHtml(d.created_at)}</small></td>
-          </tr>
-        `;
-      });
-      htmlDons += `</tbody></table>`;
-      if (donationsContainer) donationsContainer.innerHTML = htmlDons;
-    } else {
-      if (donationsContainer) donationsContainer.innerHTML = "<p class='error-badge'>Error al cargar donaciones de la BD.</p>";
+    const res = await apiFetch("/api/admin/users");
+    if (!res.ok) {
+      container.innerHTML = "<p class='glass-alert-error'>Error al consultar usuarios.</p>";
+      return;
     }
+
+    const users = await res.json();
+    if (countBadge) countBadge.textContent = users.length;
+
+    let html = `
+      <table class="glass-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>RFC</th>
+            <th>Razón Social</th>
+            <th>Representante</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Registro</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    users.forEach(u => {
+      const statusClass = u.status === "ACTIVO" ? "status-active" : u.status === "RECHAZADO" ? "status-rejected" : "status-pending";
+      html += `
+        <tr>
+          <td><code class="badge-mono">#${u.id}</code></td>
+          <td><code class="badge-mono text-neon">${escapeHtml(u.rfc || '-')}</code></td>
+          <td><strong>${escapeHtml(u.legal_name || u.name)}</strong></td>
+          <td>${escapeHtml(u.name)}</td>
+          <td><small>${escapeHtml(u.email)}</small></td>
+          <td><span class="pill-role">${escapeHtml(u.role)}</span></td>
+          <td><span class="status-pill ${statusClass}">${escapeHtml(u.status || 'PENDIENTE')}</span></td>
+          <td><small>${escapeHtml(u.created_at)}</small></td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
   } catch (e) {
-    if (donationsContainer) donationsContainer.innerHTML = "<p class='error-badge'>Error de conexión con la BD.</p>";
+    container.innerHTML = "<p class='glass-alert-error'>Error al cargar usuarios.</p>";
+  }
+}
+
+/* --- CARGAR DONACIONES --- */
+async function loadAdminDonations() {
+  const container = document.getElementById("admin-donations-container");
+  const countBadge = document.getElementById("admin-donations-count");
+  if (!container) return;
+
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Cargando donaciones...</p>";
+
+  try {
+    const res = await apiFetch("/api/admin/donations");
+    if (!res.ok) {
+      container.innerHTML = "<p class='glass-alert-error'>Error al consultar donaciones.</p>";
+      return;
+    }
+
+    const donations = await res.json();
+    if (countBadge) countBadge.textContent = donations.length;
+
+    let html = `
+      <table class="glass-table">
+        <thead>
+          <tr>
+            <th>Folio</th>
+            <th>Donante</th>
+            <th>Correo</th>
+            <th>RFC Fiscal</th>
+            <th>Causa</th>
+            <th>Monto</th>
+            <th>Método</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    donations.forEach(d => {
+      const rfcDisplay = d.rfc && d.rfc.trim() !== "" ? `<code class="badge-mono text-neon">${escapeHtml(d.rfc)}</code>` : `<span style="color:#64748b;">-</span>`;
+      html += `
+        <tr>
+          <td><code class="badge-mono">#DON-${String(d.id).padStart(4, '0')}</code></td>
+          <td><strong>${escapeHtml(d.donor_name)}</strong></td>
+          <td><small>${escapeHtml(d.donor_email)}</small></td>
+          <td>${rfcDisplay}</td>
+          <td>${escapeHtml(d.cause)}</td>
+          <td class="text-emerald-lg font-mono">$${Number(d.amount).toFixed(2)}</td>
+          <td>${escapeHtml(d.payment_method)}</td>
+          <td><small>${escapeHtml(d.created_at)}</small></td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = "<p class='glass-alert-error'>Error al cargar donaciones.</p>";
+  }
+}
+
+/* --- CARGAR BITÁCORA DE AUDITORÍA (RNF02) --- */
+async function loadAdminAuditLogs() {
+  const container = document.getElementById("admin-audit-container");
+  if (!container) return;
+
+  container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#94a3b8;'>Consultando bitácora de auditoría inmutable en SQLite...</p>";
+
+  try {
+    const res = await apiFetch("/api/admin/audit-logs");
+    if (!res.ok) {
+      container.innerHTML = "<p class='glass-alert-error'>Error al consultar auditoría.</p>";
+      return;
+    }
+
+    const logs = await res.json();
+
+    if (logs.length === 0) {
+      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#94a3b8;'>No hay eventos registrados en la auditoría.</p>";
+      return;
+    }
+
+    let html = `
+      <table class="glass-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fecha y Hora</th>
+            <th>IP Origen</th>
+            <th>Acción Registrada</th>
+            <th>Usuario / Correo</th>
+            <th>Detalles de Trazabilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    logs.forEach(l => {
+      let badgeClass = "badge-mono";
+      if (l.accion.includes("FALLIDO") || l.accion.includes("BLOQUEO") || l.accion.includes("RECHAZADO")) {
+        badgeClass = "status-pill status-rejected";
+      } else if (l.accion.includes("EXITOSO") || l.accion.includes("APROBADO") || l.accion.includes("ACTIVO")) {
+        badgeClass = "status-pill status-active";
+      } else if (l.accion.includes("REGISTRO") || l.accion.includes("CAMBIO")) {
+        badgeClass = "status-pill status-pending";
+      }
+
+      html += `
+        <tr>
+          <td><code class="badge-mono">#${l.id}</code></td>
+          <td><small class="font-mono">${escapeHtml(l.fecha)}</small></td>
+          <td><code class="badge-mono">${escapeHtml(l.ip_address || '127.0.0.1')}</code></td>
+          <td><span class="${badgeClass}">${escapeHtml(l.accion)}</span></td>
+          <td><strong>${escapeHtml(l.email || (l.user_id ? 'ID #' + l.user_id : 'Anónimo'))}</strong></td>
+          <td><small>${escapeHtml(l.detalles || '')}</small></td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = "<p class='glass-alert-error'>Error al consultar la bitácora de auditoría.</p>";
   }
 }
 
@@ -794,7 +1023,7 @@ function showToast(message, type = "info") {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(10px)";
     setTimeout(() => toast.remove(), 300);
-  }, 3500);
+  }, 4000);
 }
 
 function escapeHtml(str) {

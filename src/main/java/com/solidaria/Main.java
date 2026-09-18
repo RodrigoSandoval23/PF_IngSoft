@@ -42,8 +42,12 @@ public class Main {
 
             // Rutas de Superusuario (Admin)
             AdminHandler adminHandler = new AdminHandler();
+            server.createContext("/api/admin/pending-users", adminHandler);
+            server.createContext("/api/admin/users/status", adminHandler);
+            server.createContext("/api/admin/audit-logs", adminHandler);
             server.createContext("/api/admin/users", adminHandler);
             server.createContext("/api/admin/donations", adminHandler);
+            server.createContext("/api/admin", adminHandler);
 
             // Archivos Estáticos (HTML, CSS, JS) y Ventana de Donaciones
             StaticFileHandler staticHandler = new StaticFileHandler();

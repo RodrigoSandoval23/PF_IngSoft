@@ -3,414 +3,565 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solidaria | Portal de Donaciones</title>
+  <title>Solidaria | Sistema Ciberseguro de Gestión de Donaciones</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="dark-theme">
+
+  <!-- Fondo Ambiental Glassmorphism -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
 
   <!-- ========================================================================
-       VISTA 1: INICIO DE SESIÓN (LOGIN SENCILLO Y MINIMALISTA)
+       VISTA 1: AUTENTICACIÓN (LOGIN Y REGISTRO DE ENTIDADES Y USUARIOS)
        ======================================================================== -->
-  <section id="login-view" class="login-view-container">
-    <div class="login-card-simple">
-      <!-- Logo y Título -->
+  <section id="login-view" class="auth-view-container">
+    <div class="glass-card auth-card">
+      
+      <!-- Encabezado de la Plataforma -->
       <div class="brand-header">
-        <div class="brand-badge">❤️ Solidaria</div>
-        <h1>Iniciar Sesión</h1>
-        <p class="brand-subtitle">Ingresa para acceder a la ventana de donaciones</p>
+        <div class="brand-badge">
+          <span class="badge-dot"></span> Solidaria Security Suite
+        </div>
+        <h1 class="brand-title">Gestión de Donaciones</h1>
+        <p class="brand-subtitle">Plataforma empresarial con RBAC, verificación de RFC y auditoría RNF02</p>
       </div>
 
-      <!-- Selector simple: Login / Registro -->
-      <div class="auth-toggle">
-        <button id="tab-login-btn" class="toggle-btn active" onclick="switchLoginTab('login')">Ingresar</button>
-        <button id="tab-register-btn" class="toggle-btn" onclick="switchLoginTab('register')">Registrarse</button>
+      <!-- Selector de Pestaña: Ingresar / Registro de Entidad -->
+      <div class="glass-tabs">
+        <button id="tab-login-btn" class="glass-tab-btn active" onclick="switchAuthTab('login')">
+          Iniciar Sesión
+        </button>
+        <button id="tab-register-btn" class="glass-tab-btn" onclick="switchAuthTab('register')">
+          Registrar Entidad
+        </button>
       </div>
 
-      <!-- Formulario Login -->
+      <!-- Formulario 1: Inicio de Sesión -->
       <form id="form-login" onsubmit="handleLoginSubmit(event)">
-        <div class="form-field">
-          <label for="login-email">Correo electrónico</label>
-          <input type="email" id="login-email" class="input-clean" placeholder="tu@correo.com" required>
+        <div class="form-group">
+          <label for="login-email">Correo Electrónico</label>
+          <div class="input-glow-wrapper">
+            <input type="email" id="login-email" class="glass-input" placeholder="usuario@organizacion.org" required>
+          </div>
         </div>
 
-        <div class="form-field">
+        <div class="form-group">
           <label for="login-password">Contraseña</label>
-          <input type="password" id="login-password" class="input-clean" placeholder="••••••••" required>
+          <div class="input-glow-wrapper">
+            <input type="password" id="login-password" class="glass-input" placeholder="••••••••" required>
+          </div>
         </div>
 
-        <!-- Cuentas de Acceso Rápido -->
-        <div class="quick-demo-wrapper">
-          <span class="quick-demo-label">Probar con cuentas demo:</span>
-          <div class="demo-chips-row">
-            <button type="button" class="demo-chip-btn super-chip" onclick="fillAdminCredentials()">
-              👑 Superusuario
+        <!-- Credenciales de Evaluación Rápida -->
+        <div class="demo-chip-box">
+          <span class="demo-box-label">Acceso directo para evaluación:</span>
+          <div class="demo-chip-buttons">
+            <button type="button" class="demo-chip admin-chip" onclick="fillAdminCredentials()">
+              👑 Admin (ACTIVO)
             </button>
-            <button type="button" class="demo-chip-btn" onclick="fillDemoCredentials()">
-              👤 Donante
+            <button type="button" class="demo-chip donor-chip" onclick="fillDemoCredentials()">
+              👤 Donante Demo (ACTIVO)
             </button>
           </div>
         </div>
 
-        <button type="submit" id="btn-submit-login" class="btn-main">
-          Ingresar al Portal
+        <button type="submit" id="btn-submit-login" class="btn-primary-glass">
+          <span>Ingresar a la Plataforma</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
       </form>
 
-      <!-- Formulario Registro -->
+      <!-- Formulario 2: Registro de Entidades y Usuarios (HU03) -->
       <form id="form-register" class="hidden" onsubmit="handleRegisterSubmit(event)">
-        <div class="form-field">
-          <label for="reg-name">Nombre completo</label>
-          <input type="text" id="reg-name" class="input-clean" placeholder="Tu nombre" required>
+        
+        <div class="form-divider-title">
+          <span>1. DATOS FISCALES DE LA ENTIDAD</span>
         </div>
 
-        <div class="form-field">
-          <label for="reg-email">Correo electrónico</label>
-          <input type="email" id="reg-email" class="input-clean" placeholder="tu@correo.com" required>
+        <div class="form-group">
+          <label for="reg-rfc">RFC de la Organización (Obligatorio) *</label>
+          <div class="input-glow-wrapper">
+            <input type="text" id="reg-rfc" class="glass-input uppercase-input font-mono" placeholder="GOMR820512A12 o FDS850101XYZ" maxlength="13" required>
+          </div>
+          <small class="field-help">Registro Federal de Contribuyentes oficial ante el SAT (12 a 13 caracteres).</small>
         </div>
 
-        <div class="form-field">
-          <label for="reg-password">Contraseña (mínimo 6 caracteres)</label>
-          <input type="password" id="reg-password" class="input-clean" minlength="6" placeholder="••••••••" required>
+        <div class="form-group">
+          <label for="reg-legal-name">Razón Social o Nombre Legal *</label>
+          <div class="input-glow-wrapper">
+            <input type="text" id="reg-legal-name" class="glass-input" placeholder="Fundación Solidaria de México A.C." required>
+          </div>
         </div>
 
-        <button type="submit" id="btn-submit-register" class="btn-main">
-          Crear Cuenta
+        <div class="form-group">
+          <label>Tipo de Entidad (Restricción Estricta) *</label>
+          <div class="entity-type-selector">
+            <label class="entity-radio-card active">
+              <input type="radio" name="reg_entity_type" value="EMPRESA DONANTE" checked onchange="updateEntitySelection(this)">
+              <div class="radio-card-content">
+                <span class="card-icon">🏢</span>
+                <span class="card-title">EMPRESA DONANTE</span>
+                <span class="card-desc">Persona moral / aportante corporativo</span>
+              </div>
+            </label>
+
+            <label class="entity-radio-card">
+              <input type="radio" name="reg_entity_type" value="ORGANIZACION_SOCIAL" onchange="updateEntitySelection(this)">
+              <div class="radio-card-content">
+                <span class="card-icon">🤝</span>
+                <span class="card-title">ORGANIZACION_SOCIAL</span>
+                <span class="card-desc">ONG, A.C., IAP o comedor comunitario</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-divider-title" style="margin-top: 1.25rem;">
+          <span>2. REPRESENTANTE Y ACCESO</span>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="reg-name">Nombre Representante *</label>
+            <input type="text" id="reg-name" class="glass-input" placeholder="Lic. María Elena Rojas" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-role">Rol Solicitado (RBAC) *</label>
+            <select id="reg-role" class="glass-select">
+              <option value="DONANTE" selected>DONANTE</option>
+              <option value="BENEFICIARIO">BENEFICIARIO</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email">Correo Electrónico Institucional *</label>
+          <input type="email" id="reg-email" class="glass-input" placeholder="contacto@organizacion.org" required>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password">Contraseña (Mínimo 6 caracteres) *</label>
+          <input type="password" id="reg-password" class="glass-input" minlength="6" placeholder="••••••••••••" required>
+        </div>
+
+        <div class="account-state-notice">
+          <span class="notice-icon">ℹ️</span>
+          <span>Flujo HU03: Las cuentas creadas inician en estado <strong>PENDIENTE</strong> y requerirán validación de RFC por un Administrador antes de acceder a los recursos.</span>
+        </div>
+
+        <button type="submit" id="btn-submit-register" class="btn-primary-glass">
+          <span>Enviar Solicitud de Registro</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
       </form>
 
-      <!-- Error Toast/Message -->
-      <div id="auth-error-msg" class="error-badge hidden"></div>
+      <!-- Mensaje de Error / Alerta -->
+      <div id="auth-error-msg" class="glass-alert-error hidden"></div>
 
-      <div class="card-security-footnote">
-        🔒 Autenticación cifrada con tokens JWT (HMAC-SHA256) y SQLite
+      <!-- Pie de Seguridad Criptográfica -->
+      <div class="auth-security-footer">
+        <span>🔒 Cifrado PBKDF2-HMAC-SHA256 &bull; JWT RFC 7519 &bull; Auditoría RNF02 &bull; OWASP Top 10</span>
       </div>
     </div>
   </section>
 
 
   <!-- ========================================================================
-       VISTA 2: VENTANA DE DONACIONES LIMPIA Y SENCILLA (AUTENTICADO)
+       VISTA 2: APLICACIÓN PRINCIPAL (USUARIO AUTENTICADO Y ACTIVO)
        ======================================================================== -->
   <div id="app-view" class="app-layout hidden">
 
-    <!-- Barra de Navegación Minimalista -->
-    <header class="app-navbar">
-      <div class="nav-content">
-        <div class="logo-clean">
-          <span>❤️</span>
-          <strong>Solidaria</strong>
+    <!-- Barra de Navegación Glassmorphism -->
+    <header class="glass-navbar">
+      <div class="nav-container">
+        <div class="nav-brand">
+          <span class="brand-symbol">❤️</span>
+          <div class="brand-text">
+            <strong>Solidaria</strong>
+            <span class="security-tag">RBAC &bull; Glassmorphism</span>
+          </div>
         </div>
 
-        <!-- Enlaces Rápidos -->
-        <div class="quick-nav-links">
-          <button class="nav-tab-btn active" onclick="scrollToSection('donar')">Donar</button>
-          <button class="nav-tab-btn" onclick="openMyDonationsModal()">Mis Donaciones</button>
-          <button id="btn-nav-admin" class="nav-tab-btn admin-nav-tab hidden" onclick="openAdminPanelModal()">👑 Panel Admin</button>
-        </div>
+        <!-- Enlaces Rápidos de Navegación -->
+        <nav class="nav-links">
+          <button class="nav-link-btn active" onclick="scrollToSection('donar')">Ventana de Donación</button>
+          <button class="nav-link-btn" onclick="openMyDonationsModal()">Mis Donaciones</button>
+          <button id="btn-nav-admin" class="nav-link-btn admin-link-btn hidden" onclick="openAdminPanelModal()">
+            👑 Panel de Administración
+          </button>
+        </nav>
 
-        <!-- Widget de Usuario y Sesión -->
-        <div id="user-session-widget" class="user-session-wrapper">
-          <button id="user-avatar-btn" class="user-pill-btn" onclick="toggleUserDropdown()" aria-label="Menú de usuario">
-            <div class="avatar-dot">
+        <!-- Widget de Sesión con Dropdown -->
+        <div id="user-session-widget" class="session-widget">
+          <button id="user-avatar-btn" class="session-user-btn" onclick="toggleUserDropdown()" aria-label="Menú de usuario">
+            <div class="avatar-ring">
               <span id="user-initials">U</span>
             </div>
-            <span id="user-display-name" class="pill-username">Usuario</span>
-            <span class="jwt-badge">● JWT</span>
+            <div class="user-meta-text">
+              <span id="user-display-name" class="user-name">Usuario</span>
+              <span id="user-display-role" class="user-role-badge">DONANTE</span>
+            </div>
+            <span class="status-indicator-dot" title="Cuenta Activa"></span>
           </button>
 
-          <!-- Menú Desplegable -->
-          <div id="user-dropdown" class="user-popover hidden">
-            <div class="popover-user-info">
+          <!-- Dropdown Popover de Usuario -->
+          <div id="user-dropdown" class="glass-popover hidden">
+            <div class="popover-profile">
               <strong id="dropdown-full-name">Nombre</strong>
-              <small id="dropdown-email">correo@donaciones.org</small>
-              <div class="role-pill">Donante</div>
+              <small id="dropdown-email">correo@organizacion.org</small>
+              <div class="popover-meta-row">
+                <span id="dropdown-role-pill" class="pill-role">DONANTE</span>
+                <span id="dropdown-status-pill" class="pill-status">ACTIVO</span>
+              </div>
+              <div class="popover-entity-row">
+                <small>RFC: <code id="dropdown-rfc" class="font-mono">-</code></small>
+                <small id="dropdown-entity-name" class="text-muted">-</small>
+              </div>
             </div>
-            <div class="popover-divider"></div>
-            <button class="popover-action" onclick="openMyDonationsModal()">
+            <div class="popover-separator"></div>
+            <button class="popover-menu-item" onclick="openMyDonationsModal()">
               📋 Historial de Donaciones
             </button>
-            <button class="popover-action" onclick="openJwtInspectorModal()">
-              🔍 Inspeccionar Token JWT
+            <button class="popover-menu-item" onclick="openJwtInspectorModal()">
+              🔍 Inspeccionar Token JWT (RFC 7519)
             </button>
-            <button id="btn-admin-panel" class="popover-action admin-action hidden" onclick="openAdminPanelModal()">
-              👑 Panel de Superusuario (BD)
+            <button id="btn-admin-panel" class="popover-menu-item admin-item hidden" onclick="openAdminPanelModal()">
+              👑 Panel Superusuario y Auditoría
             </button>
-            <div class="popover-divider"></div>
-            <button class="popover-action text-danger" onclick="logout()">
-              🚪 Cerrar Sesión
+            <div class="popover-separator"></div>
+            <button class="popover-menu-item danger-item" onclick="logout()">
+              🚪 Cerrar Sesión Segura
             </button>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- Contenido Principal -->
-    <main class="main-container" id="donar">
+    <!-- Contenedor Principal -->
+    <main class="main-content" id="donar">
 
-      <!-- Tarjeta de Progreso y Meta -->
-      <section class="progress-card-clean">
-        <div class="progress-info-row">
+      <!-- Tarjeta Glassmorphic de Progreso y Meta Comunitaria -->
+      <section class="glass-card progress-card">
+        <div class="progress-header">
           <div>
-            <span class="progress-subtitle">Meta Comunitaria</span>
-            <div class="progress-numbers">
-              <strong id="stat-total">$0.00</strong>
-              <span class="meta-label">de $5,000.00 USD</span>
+            <span class="progress-eyebrow">Meta de Recaudación Institucional</span>
+            <div class="progress-figure-row">
+              <strong id="stat-total" class="stat-highlight">$0.00</strong>
+              <span class="stat-target">de $5,000.00 USD</span>
             </div>
           </div>
-          <div class="count-badge">
-            <span id="stat-count">0</span> donaciones realizadas
+          <div class="donations-count-badge">
+            <span id="stat-count">0</span> donaciones registradas en SQLite
           </div>
         </div>
-        <div class="progress-track">
-          <div id="progress-bar-fill" class="progress-fill" style="width: 0%"></div>
+        <div class="glass-progress-bar">
+          <div id="progress-bar-fill" class="glass-progress-fill" style="width: 0%"></div>
         </div>
       </section>
 
-      <!-- VENTANA DE DONACIÓN SIMPLIFICADA -->
-      <section class="donation-card-unified">
+      <!-- Ventana Unificada de Donaciones -->
+      <section class="glass-card donation-card">
         
-        <!-- Saludo / Estado de Sesión -->
-        <div id="session-banner" class="session-welcome">
-          <div>
-            <span class="welcome-label">Donando como:</span>
+        <!-- Banner de Sesión -->
+        <div class="donor-context-banner">
+          <div class="context-info">
+            <span class="context-eyebrow">Donando como:</span>
             <strong id="banner-user-name">Usuario</strong>
+            <span id="banner-entity-info" class="entity-badge">Entidad</span>
           </div>
-          <span id="banner-user-email" class="welcome-email">usuario@correo.com</span>
+          <div class="context-email">
+            <span id="banner-user-email">usuario@correo.com</span>
+            <span id="banner-user-rfc" class="font-mono text-neon">RFC: -</span>
+          </div>
         </div>
 
         <form id="donation-form" onsubmit="handleDonationSubmit(event)">
           
           <!-- 1. Selección de Causa -->
-          <div class="section-group">
-            <label class="section-label">1. Selecciona la causa</label>
+          <div class="form-section">
+            <label class="form-section-title">1. Selecciona la Causa Social</label>
             <input type="hidden" id="selected-cause-input" value="Educación para Niños">
-            <div class="causes-selector-pills">
-              <div class="cause-pill active" data-cause="Educación para Niños">
-                <span class="cause-emoji">📚</span>
-                <div class="cause-pill-text">
-                  <strong>Educación</strong>
-                  <small>Becas y útiles</small>
+            <div class="causes-grid">
+              <div class="cause-card active" data-cause="Educación para Niños">
+                <span class="cause-icon">📚</span>
+                <div class="cause-details">
+                  <strong>Educación para Niños</strong>
+                  <small>Becas, equipo escolar y material didáctico</small>
                 </div>
               </div>
 
-              <div class="cause-pill" data-cause="Refugio Animal">
-                <span class="cause-emoji">🐾</span>
-                <div class="cause-pill-text">
-                  <strong>Animales</strong>
-                  <small>Rescate y comida</small>
+              <div class="cause-card" data-cause="Refugio Animal">
+                <span class="cause-icon">🐾</span>
+                <div class="cause-details">
+                  <strong>Refugio y Rescate Animal</strong>
+                  <small>Atención médica veterinaria y alimentación</small>
                 </div>
               </div>
 
-              <div class="cause-pill" data-cause="Reforestación y Clima">
-                <span class="cause-emoji">🌱</span>
-                <div class="cause-pill-text">
-                  <strong>Reforestación</strong>
-                  <small>Siembra de árboles</small>
+              <div class="cause-card" data-cause="Reforestación y Clima">
+                <span class="cause-icon">🌱</span>
+                <div class="cause-details">
+                  <strong>Reforestación y Medio Ambiente</strong>
+                  <small>Siembra de árboles nativos y conservación</small>
                 </div>
               </div>
 
-              <div class="cause-pill" data-cause="Comedores Comunitarios">
-                <span class="cause-emoji">🍲</span>
-                <div class="cause-pill-text">
-                  <strong>Comedores</strong>
-                  <small>Alimentos diarios</small>
+              <div class="cause-card" data-cause="Comedores Comunitarios">
+                <span class="cause-icon">🍲</span>
+                <div class="cause-details">
+                  <strong>Comedores Comunitarios</strong>
+                  <small>Raciones alimenticias en zonas vulnerables</small>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 2. Selección de Monto -->
-          <div class="section-group">
-            <label class="section-label">2. Elige el monto a donar</label>
-            <div class="amount-pills-row">
-              <button type="button" class="amount-btn" data-val="10">$10</button>
-              <button type="button" class="amount-btn active" data-val="25">$25</button>
-              <button type="button" class="amount-btn" data-val="50">$50</button>
-              <button type="button" class="amount-btn" data-val="100">$100</button>
+          <div class="form-section">
+            <label class="form-section-title">2. Define el Monto de la Aportación</label>
+            <div class="amounts-grid">
+              <button type="button" class="amount-pill" data-val="10">$10</button>
+              <button type="button" class="amount-pill active" data-val="25">$25</button>
+              <button type="button" class="amount-pill" data-val="50">$50</button>
+              <button type="button" class="amount-pill" data-val="100">$100</button>
             </div>
-            <div class="custom-amount-box">
-              <span class="currency-symbol">$</span>
-              <input type="number" id="custom-amount-input" class="custom-amount-clean" placeholder="Otro monto" min="1" step="any" value="25">
-              <span class="currency-tag">USD</span>
+            <div class="custom-amount-input-box">
+              <span class="currency-prefix">$</span>
+              <input type="number" id="custom-amount-input" class="custom-amount-field" min="1" step="any" value="25" placeholder="Monto personalizado">
+              <span class="currency-suffix">USD</span>
             </div>
           </div>
 
           <!-- 3. Método de Pago -->
-          <div class="section-group">
-            <label class="section-label">3. Método de pago</label>
-            <div class="payment-pills-row">
-              <label class="payment-method-card active">
+          <div class="form-section">
+            <label class="form-section-title">3. Método de Pago Seguro</label>
+            <div class="payment-grid">
+              <label class="payment-card active">
                 <input type="radio" name="payment_method" value="tarjeta" checked>
-                <span>💳 Tarjeta</span>
+                <span>💳 Tarjeta Bancaria</span>
               </label>
-              <label class="payment-method-card">
+              <label class="payment-card">
                 <input type="radio" name="payment_method" value="paypal">
                 <span>🅿️ PayPal</span>
               </label>
-              <label class="payment-method-card">
+              <label class="payment-card">
                 <input type="radio" name="payment_method" value="transferencia">
-                <span>🏦 Transferencia</span>
+                <span>🏦 Transferencia SPEI</span>
               </label>
             </div>
-          </div>
 
-          <!-- Datos de tarjeta simulada (compactos) -->
-          <div id="card-fields" class="simulated-card-box">
-            <div class="form-row-2">
-              <div>
-                <label class="sub-label">Tarjeta simulada</label>
-                <input type="text" class="input-clean-sm" value="•••• •••• •••• 4242">
-              </div>
+            <!-- Campos de Tarjeta Simulada Glassmorphism -->
+            <div id="card-fields" class="simulated-card-glass">
               <div class="form-row-2">
                 <div>
-                  <label class="sub-label">Vence</label>
-                  <input type="text" class="input-clean-sm" value="12/28">
+                  <label class="sub-label">Tarjeta Simulada</label>
+                  <input type="text" class="glass-input-sm" value="•••• •••• •••• 4242" readonly>
                 </div>
-                <div>
-                  <label class="sub-label">CVC</label>
-                  <input type="text" class="input-clean-sm" value="888">
+                <div class="form-row-2">
+                  <div>
+                    <label class="sub-label">Vencimiento</label>
+                    <input type="text" class="glass-input-sm" value="12/28" readonly>
+                  </div>
+                  <div>
+                    <label class="sub-label">CVC</label>
+                    <input type="text" class="glass-input-sm" value="888" readonly>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- RFC Fiscal Deducible de Impuestos (Opcional) -->
-          <div class="section-group">
-            <label class="checkbox-clean">
+          <!-- RFC Fiscal Deducible de Impuestos (Opcional o Prefill con el de la entidad) -->
+          <div class="form-section">
+            <label class="glass-checkbox">
               <input type="checkbox" id="tax-deductible-check" onchange="toggleRfcField()">
-              <span>Requiero recibo deducible de impuestos (RFC)</span>
+              <span>Requiero Comprobante Fiscal Deducible de Impuestos (RFC)</span>
             </label>
-            <div id="rfc-field-group" class="hidden" style="margin-top: 0.6rem;">
-              <input type="text" id="donor-rfc" class="input-clean" placeholder="RFC (ej. GOMR820512A12 o XAXX010101000)" maxlength="13" style="text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
-              <small class="hint-text">Se registrará en tu comprobante fiscal para efectos de deducibilidad.</small>
+            <div id="rfc-field-group" class="hidden" style="margin-top: 0.75rem;">
+              <input type="text" id="donor-rfc" class="glass-input uppercase-input font-mono" placeholder="RFC Fiscal (ej. GOMR820512A12)" maxlength="13">
+              <small class="field-help">Se emitirá con los datos fiscales de tu entidad jurídica registrados en la BD.</small>
             </div>
           </div>
 
-          <!-- Mensaje opcional -->
-          <div class="section-group">
-            <label class="section-label">Mensaje de apoyo (opcional)</label>
-            <input type="text" id="donation-message" class="input-clean" placeholder="¡Mucho éxito con la labor!">
+          <!-- Mensaje Opcional -->
+          <div class="form-section">
+            <label class="form-section-title">Mensaje Institucional (Opcional)</label>
+            <input type="text" id="donation-message" class="glass-input" placeholder="Mensaje de apoyo o dedicatoria corporativa...">
           </div>
 
-          <!-- Botón de Donar -->
-          <button type="submit" id="btn-donate-submit" class="btn-donate-now">
-            Completar Donación de <strong id="btn-donation-amount-text">$25.00 USD</strong>
+          <!-- Botón de Envío -->
+          <button type="submit" id="btn-donate-submit" class="btn-donate-glass">
+            <span>Completar Donación de </span>
+            <strong id="btn-donation-amount-text" class="btn-amount-strong">$25.00 USD</strong>
           </button>
         </form>
       </section>
 
     </main>
 
-    <!-- Footer Simple -->
-    <footer class="clean-footer">
-      <p>Solidaria &bull; Sistema de Donaciones con Autenticación JWT y Base de Datos SQLite</p>
+    <!-- Footer Elegante -->
+    <footer class="app-footer">
+      <p>Solidaria Enterprise &bull; Plataforma con Autenticación JWT, RBAC Deny-by-Default y Base de Datos SQLite Cifrada</p>
     </footer>
   </div>
 
 
   <!-- ========================================================================
-       MODALES SENCILLOS Y LIMPIOS
+       MODALES GLASSMORPHISM
        ======================================================================== -->
 
-  <!-- Modal Recibo -->
-  <div id="receipt-modal" class="modal-overlay hidden">
-    <div class="modal-clean text-center">
-      <div class="success-check-icon">✓</div>
-      <h2>¡Donación Recibida!</h2>
-      <p class="receipt-note">Tu contribución ha quedado registrada en la Base de Datos.</p>
+  <!-- Modal Recibo de Donación -->
+  <div id="receipt-modal" class="modal-backdrop hidden">
+    <div class="glass-card modal-box text-center">
+      <div class="success-icon-glow">✓</div>
+      <h2 class="modal-title">¡Aportación Confirmada!</h2>
+      <p class="modal-subtitle">Tu contribución ha sido persistida en SQLite con firma criptográfica.</p>
 
-      <div class="receipt-card-box">
-        <div class="receipt-line">
+      <div class="receipt-summary-box">
+        <div class="receipt-row">
           <span>Donante:</span>
           <strong id="rec-donor-name">-</strong>
         </div>
-        <div class="receipt-line">
+        <div class="receipt-row">
           <span>Correo:</span>
           <strong id="rec-donor-email">-</strong>
         </div>
-        <div class="receipt-line">
+        <div class="receipt-row">
           <span>RFC Fiscal:</span>
-          <strong id="rec-rfc">-</strong>
+          <strong id="rec-rfc" class="font-mono text-neon">-</strong>
         </div>
-        <div class="receipt-line">
+        <div class="receipt-row">
           <span>Causa:</span>
           <strong id="rec-cause">-</strong>
         </div>
-        <div class="receipt-line">
+        <div class="receipt-row">
           <span>Monto:</span>
-          <strong id="rec-amount" class="text-amount">-</strong>
+          <strong id="rec-amount" class="text-emerald-lg">-</strong>
         </div>
-        <div class="receipt-line">
-          <span>Folio Transacción:</span>
-          <code id="rec-id" class="badge-code">#00</code>
+        <div class="receipt-row">
+          <span>Folio de Transacción:</span>
+          <code id="rec-id" class="badge-mono">#00</code>
         </div>
       </div>
 
-      <button class="btn-main" onclick="closeReceiptModal()">Entendido y Continuar</button>
+      <button class="btn-primary-glass" onclick="closeReceiptModal()">Entendido y Continuar</button>
     </div>
   </div>
 
   <!-- Modal Mis Donaciones -->
-  <div id="my-donations-modal" class="modal-overlay hidden">
-    <div class="modal-clean modal-wide">
-      <div class="modal-header-row">
-        <h3>📋 Mis Donaciones</h3>
-        <button class="btn-close-clean" onclick="closeMyDonationsModal()">&times;</button>
+  <div id="my-donations-modal" class="modal-backdrop hidden">
+    <div class="glass-card modal-box modal-wide">
+      <div class="modal-header">
+        <h3>📋 Historial de Donaciones</h3>
+        <button class="btn-close-modal" onclick="closeMyDonationsModal()">&times;</button>
       </div>
-      <p class="modal-sub">Historial personal vinculado a tu token de sesión <code>JWT</code>.</p>
-      <div id="donations-list-container" class="clean-table-wrapper"></div>
+      <p class="modal-subtitle">Aportaciones vinculadas al token de sesión <code>JWT</code> del donante.</p>
+      <div id="donations-list-container" class="glass-table-container"></div>
     </div>
   </div>
 
-  <!-- Modal Inspector JWT -->
-  <div id="jwt-inspector-modal" class="modal-overlay hidden">
-    <div class="modal-clean modal-wide">
-      <div class="modal-header-row">
-        <h3>🔍 Inspector de Token JWT</h3>
-        <button class="btn-close-clean" onclick="closeJwtInspectorModal()">&times;</button>
+  <!-- Modal Inspector JWT (RFC 7519) -->
+  <div id="jwt-inspector-modal" class="modal-backdrop hidden">
+    <div class="glass-card modal-box modal-wide">
+      <div class="modal-header">
+        <h3>🔍 Inspector de Token JWT (RFC 7519)</h3>
+        <button class="btn-close-modal" onclick="closeJwtInspectorModal()">&times;</button>
       </div>
-      <p class="modal-sub">Estructura decodificada del token activo según el estándar RFC 7519.</p>
+      <p class="modal-subtitle">Estructura decodificada del token activo validado con HMAC-SHA256.</p>
 
-      <div class="inspector-stack">
+      <div class="inspector-grid">
         <div>
-          <span class="code-title text-header">Encabezado (Header):</span>
-          <pre id="jwt-header-display" class="clean-code-block">{}</pre>
+          <span class="code-label header-label">Encabezado (Header):</span>
+          <pre id="jwt-header-display" class="glass-code-block font-mono">{}</pre>
         </div>
         <div>
-          <span class="code-title text-payload">Carga Útil (Payload / Claims):</span>
-          <pre id="jwt-payload-display" class="clean-code-block">{}</pre>
+          <span class="code-label payload-label">Carga Útil (Payload / Claims):</span>
+          <pre id="jwt-payload-display" class="glass-code-block font-mono">{}</pre>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Panel Superusuario -->
-  <div id="admin-modal" class="modal-overlay hidden">
-    <div class="modal-clean modal-wide">
-      <div class="modal-header-row">
-        <h3>👑 Panel de Superusuario (SQLite)</h3>
-        <button class="btn-close-clean" onclick="closeAdminPanelModal()">&times;</button>
+  <!-- Modal Panel de Superusuario (ADMIN) -->
+  <div id="admin-modal" class="modal-backdrop hidden">
+    <div class="glass-card modal-box modal-extra-wide">
+      <div class="modal-header">
+        <div class="admin-header-title">
+          <span class="admin-crown">👑</span>
+          <div>
+            <h3>Panel de Administración y Ciberseguridad</h3>
+            <span class="admin-subtitle">Gestión de Solicitudes (HU03), Roles (RBAC) y Auditoría (RNF02)</span>
+          </div>
+        </div>
+        <button class="btn-close-modal" onclick="closeAdminPanelModal()">&times;</button>
       </div>
-      <p class="modal-sub">Consulta de registros en tiempo real desde la Base de Datos <code>donations.db</code>.</p>
 
-      <div class="auth-toggle admin-toggle-bar">
-        <button id="tab-admin-users-btn" class="toggle-btn active" onclick="switchAdminTab('users')">
-          👥 Usuarios (<span id="admin-users-count">0</span>)
+      <!-- Barra de Pestañas Administrativas -->
+      <div class="admin-tabs-bar">
+        <button id="tab-adm-pending" class="admin-tab-btn active" onclick="switchAdminSubTab('pending')">
+          ⏳ Solicitudes Pendientes (<span id="admin-pending-count">0</span>)
         </button>
-        <button id="tab-admin-donations-btn" class="toggle-btn" onclick="switchAdminTab('donations')">
+        <button id="tab-adm-users" class="admin-tab-btn" onclick="switchAdminSubTab('users')">
+          👥 Todos los Usuarios (<span id="admin-users-count">0</span>)
+        </button>
+        <button id="tab-adm-donations" class="admin-tab-btn" onclick="switchAdminSubTab('donations')">
           💰 Donaciones (<span id="admin-donations-count">0</span>)
         </button>
+        <button id="tab-adm-audit" class="admin-tab-btn" onclick="switchAdminSubTab('audit')">
+          🛡️ Auditoría de Cuentas (RNF02)
+        </button>
       </div>
 
-      <div id="admin-users-container" class="clean-table-wrapper"></div>
-      <div id="admin-donations-container" class="clean-table-wrapper hidden"></div>
+      <!-- 1. Pestaña: Solicitudes Pendientes (HU03) -->
+      <div id="admin-pending-panel" class="admin-tab-content">
+        <p class="section-desc">Cuentas con estado <code>PENDIENTE</code> esperando revisión de RFC y documentos para habilitar acceso.</p>
+        <div id="admin-pending-container" class="glass-table-container"></div>
+      </div>
+
+      <!-- 2. Pestaña: Usuarios -->
+      <div id="admin-users-panel" class="admin-tab-content hidden">
+        <p class="section-desc">Directorio de usuarios registrados en SQLite con entidad y estado.</p>
+        <div id="admin-users-container" class="glass-table-container"></div>
+      </div>
+
+      <!-- 3. Pestaña: Donaciones -->
+      <div id="admin-donations-panel" class="admin-tab-content hidden">
+        <p class="section-desc">Registro global de aportaciones registradas con desglose de RFC.</p>
+        <div id="admin-donations-container" class="glass-table-container"></div>
+      </div>
+
+      <!-- 4. Pestaña: Auditoría de Cuentas (RNF02) -->
+      <div id="admin-audit-panel" class="admin-tab-content hidden">
+        <p class="section-desc">Bitácora inmutable en tiempo real de registros, inicios de sesión, bloqueos de fuerza bruta y cambios de estado.</p>
+        <div id="admin-audit-container" class="glass-table-container"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Notificaciones Toast -->
+  <!-- Modal Informativo: Cuenta Pendiente de Aprobación (HU03) -->
+  <div id="pending-alert-modal" class="modal-backdrop hidden">
+    <div class="glass-card modal-box text-center">
+      <div class="pending-icon-glow">⏳</div>
+      <h2 class="modal-title">Cuenta en Revisión</h2>
+      <div class="pending-badge-row">
+        <span class="status-pill status-pending">ESTADO: PENDIENTE</span>
+      </div>
+      <p class="pending-explain">
+        Tu registro como entidad jurídica ha sido guardado exitosamente. Por políticas de cumplimiento y ciberseguridad, un <strong>Administrador</strong> debe auditar tu RFC y datos de la organización antes de activar tu token de acceso.
+      </p>
+      <div class="pending-credentials-tip">
+        <span>💡 Puedes ingresar con la cuenta de <strong>Superusuario</strong> para aprobar esta solicitud de inmediato desde el Panel Admin.</span>
+      </div>
+      <button class="btn-primary-glass" onclick="closePendingAlertModal()">Entendido</button>
+    </div>
+  </div>
+
+  <!-- Contenedor Flotante de Notificaciones Toast -->
   <div id="toast-container" class="toast-container"></div>
 
   <script src="/static/app.js"></script>
