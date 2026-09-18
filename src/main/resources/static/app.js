@@ -53,6 +53,31 @@ function showAppView() {
 function updateSessionIcon() {
   if (!currentUser) return;
 
+  const isAdmin = currentUser.role === "ADMIN";
+
+  const cardUserName = document.getElementById("card-user-name");
+  const cardUserEmail = document.getElementById("card-user-email");
+  const cardUserRfc = document.getElementById("card-user-rfc");
+  const cardUserEntity = document.getElementById("card-user-entity");
+  const cardUserRole = document.getElementById("card-user-role");
+  const cardUserStatus = document.getElementById("card-user-status");
+  const btnCardAdmin = document.getElementById("btn-card-admin");
+
+  if (cardUserName) cardUserName.textContent = currentUser.name;
+  if (cardUserEmail) cardUserEmail.textContent = currentUser.email;
+  if (cardUserRfc) cardUserRfc.textContent = currentUser.rfc || "Sin RFC";
+  if (cardUserEntity) cardUserEntity.textContent = currentUser.entity_type || (isAdmin ? "ADMINISTRACIÓN" : "ENTIDAD REGISTRADA");
+  if (cardUserRole) cardUserRole.textContent = currentUser.role;
+  if (cardUserStatus) {
+    cardUserStatus.textContent = currentUser.status || "ACTIVO";
+    cardUserStatus.className = currentUser.status === "ACTIVO" ? "status-pill status-active" : "status-pill status-pending";
+  }
+
+  if (btnCardAdmin) {
+    if (isAdmin) btnCardAdmin.classList.remove("hidden");
+    else btnCardAdmin.classList.add("hidden");
+  }
+
   const initials = getInitials(currentUser.name);
   const initialsEl = document.getElementById("user-initials");
   const displayNameEl = document.getElementById("user-display-name");
@@ -63,54 +88,14 @@ function updateSessionIcon() {
   const statusPill = document.getElementById("dropdown-status-pill");
   const rfcEl = document.getElementById("dropdown-rfc");
 
-  const bannerNameEl = document.getElementById("banner-user-name");
-  const bannerRfcEl = document.getElementById("banner-user-rfc");
-  const bannerEntityEl = document.getElementById("banner-entity-info");
-
-  const btnAdminPanel = document.getElementById("btn-admin-panel");
-  const btnNavAdmin = document.getElementById("btn-nav-admin");
-
-  const isAdmin = currentUser.role === "ADMIN";
-
-  if (initialsEl) initialsEl.textContent = isAdmin ? "AD" : "DR";
-  if (fullNameEl) fullNameEl.textContent = isAdmin ? currentUser.name : "Donante registrado";
+  if (initialsEl) initialsEl.textContent = isAdmin ? "AD" : "UR";
+  if (fullNameEl) fullNameEl.textContent = currentUser.name;
   if (emailEl) emailEl.textContent = currentUser.email;
-
-  if (displayNameEl) displayNameEl.textContent = isAdmin ? "👑 Admin" : "Donante registrado";
+  if (displayNameEl) displayNameEl.textContent = "Usuario registrado";
   if (displayRoleEl) displayRoleEl.textContent = currentUser.role;
-
-  if (rolePill) {
-    rolePill.textContent = currentUser.role;
-    rolePill.className = isAdmin ? "pill-role admin-pill" : "pill-role";
-  }
-
-  if (statusPill) {
-    statusPill.textContent = currentUser.status || "ACTIVO";
-    statusPill.className = currentUser.status === "ACTIVO" ? "status-pill status-active" : "status-pill status-pending";
-  }
-
-  const rfcVal = currentUser.rfc || "Sin RFC";
-  if (rfcEl) rfcEl.textContent = rfcVal;
-
-  if (bannerNameEl) bannerNameEl.textContent = isAdmin ? "👑 Superusuario" : "Donante registrado";
-  if (bannerRfcEl) bannerRfcEl.textContent = `RFC: ${rfcVal}`;
-  if (bannerEntityEl) {
-    bannerEntityEl.textContent = currentUser.entity_type || (isAdmin ? "ADMIN" : "ENTIDAD");
-  }
-
-  const donorRfcInput = document.getElementById("donor-rfc");
-  if (donorRfcInput && currentUser.rfc && !donorRfcInput.value) {
-    donorRfcInput.value = currentUser.rfc;
-  }
-
-  if (btnAdminPanel) {
-    if (isAdmin) btnAdminPanel.classList.remove("hidden");
-    else btnAdminPanel.classList.add("hidden");
-  }
-  if (btnNavAdmin) {
-    if (isAdmin) btnNavAdmin.classList.remove("hidden");
-    else btnNavAdmin.classList.add("hidden");
-  }
+  if (rolePill) rolePill.textContent = currentUser.role;
+  if (statusPill) statusPill.textContent = currentUser.status || "ACTIVO";
+  if (rfcEl) rfcEl.textContent = currentUser.rfc || "Sin RFC";
 }
 
 function toggleUserDropdown() {
@@ -206,7 +191,7 @@ async function handleLoginSubmit(event) {
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentUser));
 
     showAppView();
-    showToast(currentUser.role === "ADMIN" ? `Bienvenido, ${currentUser.name}` : "Donante registrado", "success");
+    showToast("Usuario registrado", "success");
   } catch (err) {
     if (errorMsg) {
       errorMsg.textContent = "Error de conexión con el servidor.";
@@ -496,6 +481,7 @@ function showReceiptModal(donation) {
   const elAmount = document.getElementById("rec-amount");
   const elId = document.getElementById("rec-id");
 
+  if (elName) elName.textContent = donation.donor_name;
   if (elName) elName.textContent = currentUser && currentUser.role === "ADMIN" ? donation.donor_name : "Donante registrado";
   if (elEmail) elEmail.textContent = donation.donor_email;
   if (elRfc) elRfc.textContent = donation.rfc && donation.rfc.trim() !== "" ? donation.rfc : "No solicitado";
