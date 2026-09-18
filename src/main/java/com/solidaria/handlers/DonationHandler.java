@@ -70,9 +70,9 @@ public class DonationHandler implements HttpHandler {
                 donorName,
                 donorEmail,
                 amount,
-                cause,
+                HttpHelper.sanitizeHtml(cause),
                 paymentMethod != null ? paymentMethod : "tarjeta",
-                message
+                HttpHelper.sanitizeHtml(message)
         );
 
         Map<String, Object> resp = mapDonation(donation);

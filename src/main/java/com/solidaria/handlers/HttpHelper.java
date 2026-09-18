@@ -66,6 +66,19 @@ public class HttpHelper {
     }
 
     /**
+     * Sanitiza texto para evitar inyecciones XSS (OWASP A03)
+     */
+    public static String sanitizeHtml(String input) {
+        if (input == null) return null;
+        return input.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#x27;")
+                    .replace("/", "&#x2F;");
+    }
+
+    /**
      * Extrae y valida el usuario desde el header 'Authorization: Bearer <token>'
      */
     public static User getAuthenticatedUser(HttpExchange exchange) {
