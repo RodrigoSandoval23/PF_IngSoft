@@ -79,9 +79,15 @@ public class DataStore {
                     "cause TEXT NOT NULL, " +
                     "payment_method TEXT NOT NULL, " +
                     "message TEXT, " +
+                    "rfc TEXT DEFAULT '', " +
                     "created_at TEXT NOT NULL, " +
                     "FOREIGN KEY (user_id) REFERENCES users(id)" +
                     ");");
+
+            // Migración idempotente por si la tabla ya existía
+            try {
+                stmt.execute("ALTER TABLE donations ADD COLUMN rfc TEXT DEFAULT '';");
+            } catch (Exception ignored) {}
         }
     }
 
@@ -294,13 +300,18 @@ public class DataStore {
     }
 
     public synchronized Donation addDonation(Integer userId, String donorName, String donorEmail, double amount, String cause, String paymentMethod, String message) {
+        return addDonation(userId, donorName, donorEmail, amount, cause, paymentMethod, message, "");
+    }
+
+    public synchronized Donation addDonation(Integer userId, String donorName, String donorEmail, double amount, String cause, String paymentMethod, String message, String rfc) {
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String cleanRfc = rfc != null ? rfc.trim().toUpperCase() : "";
 
         if (useSqlite) {
             try (Connection conn = getConnection();
                  PreparedStatement ps = conn.prepareStatement(
-                         "INSERT INTO donations (user_id, donor_name, donor_email, amount, cause, payment_method, message, created_at) " +
-                                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                         "INSERT INTO donations (user_id, donor_name, donor_email, amount, cause, payment_method, message, rfc, created_at) " +
+                                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                          Statement.RETURN_GENERATED_KEYS)) {
                 if (userId != null) {
                     ps.setInt(1, userId);
@@ -313,13 +324,14 @@ public class DataStore {
                 ps.setString(5, cause);
                 ps.setString(6, paymentMethod);
                 ps.setString(7, message != null ? message : "");
-                ps.setString(8, now);
+                ps.setString(8, cleanRfc);
+                ps.setString(9, now);
                 ps.executeUpdate();
 
                 try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         int id = generatedKeys.getInt(1);
-                        return new Donation(id, userId, donorName, donorEmail, amount, cause, paymentMethod, message);
+                        return new Donation(id, userId, donorName, donorEmail, amount, cause, paymentMethod, message, cleanRfc, now);
                     }
                 }
             } catch (SQLException e) {
@@ -328,7 +340,7 @@ public class DataStore {
         }
 
         int id = memoryDonationIdSeq.getAndIncrement();
-        Donation donation = new Donation(id, userId, donorName, donorEmail, amount, cause, paymentMethod, message);
+        Donation donation = new Donation(id, userId, donorName, donorEmail, amount, cause, paymentMethod, message, cleanRfc, now);
         memoryDonations.add(donation);
         return donation;
     }
@@ -341,6 +353,8 @@ public class DataStore {
                 ps.setInt(1, userId);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
+                        String rfc = "";
+                        try { rfc = rs.getString("rfc"); } catch (Exception ignored) {}
                         list.add(new Donation(
                                 rs.getInt("id"),
                                 rs.getInt("user_id"),
@@ -349,7 +363,9 @@ public class DataStore {
                                 rs.getDouble("amount"),
                                 rs.getString("cause"),
                                 rs.getString("payment_method"),
-                                rs.getString("message")
+                                rs.getString("message"),
+                                rfc != null ? rfc : "",
+                                rs.getString("created_at")
                         ));
                     }
                     return list;
@@ -374,6 +390,8 @@ public class DataStore {
                  Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT * FROM donations ORDER BY id DESC")) {
                 while (rs.next()) {
+                    String rfc = "";
+                    try { rfc = rs.getString("rfc"); } catch (Exception ignored) {}
                     list.add(new Donation(
                             rs.getInt("id"),
                             rs.getInt("user_id"),
@@ -382,7 +400,9 @@ public class DataStore {
                             rs.getDouble("amount"),
                             rs.getString("cause"),
                             rs.getString("payment_method"),
-                            rs.getString("message")
+                            rs.getString("message"),
+                            rfc != null ? rfc : "",
+                            rs.getString("created_at")
                     ));
                 }
                 return list;

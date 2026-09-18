@@ -53,7 +53,8 @@ public class TestSystem {
         System.out.println("✔ Usuario demo pre-cargado: OK (" + demo.getEmail() + ")");
 
         // Registrar nuevo usuario
-        User newUser = ds.registerUser("Maria Lopez", "maria@donaciones.org", "maria2026");
+        String testEmail = "test_user_" + System.currentTimeMillis() + "@donaciones.org";
+        User newUser = ds.registerUser("Maria Lopez", testEmail, "maria2026");
         if (newUser == null) {
             throw new RuntimeException("Fallo al registrar nuevo usuario.");
         }
@@ -66,6 +67,13 @@ public class TestSystem {
             throw new RuntimeException("Fallo al vincular donación con usuario.");
         }
         System.out.println("✔ Donación vinculada a usuario JWT: OK (#" + don.getId() + " - $" + don.getAmount() + ")");
+
+        // Registrar donación con RFC
+        Donation donWithRfc = ds.addDonation(newUser.getId(), newUser.getName(), newUser.getEmail(), 150.0, "Educación para Niños", "tarjeta", "Apoyo con factura", "XAXX010101000");
+        if (donWithRfc == null || !"XAXX010101000".equals(donWithRfc.getRfc())) {
+            throw new RuntimeException("Fallo al registrar donación con RFC fiscal.");
+        }
+        System.out.println("✔ Donación con RFC fiscal registrada en SQLite: OK (RFC: " + donWithRfc.getRfc() + ")");
 
         Map<String, Object> stats = ds.getStats();
         System.out.println("✔ Estadísticas calculadas: OK (" + stats + ")");

@@ -1,6 +1,6 @@
 /**
  * app.js - Lógica de cliente: Pantalla de Login, Autenticación JWT,
- * Ícono de Sesión y Ventana de Donaciones.
+ * Ícono de Sesión, Ventana de Donaciones con RFC y Panel de Superusuario.
  */
 
 const STORAGE_TOKEN_KEY = "solidaria_jwt_token";
@@ -16,12 +16,12 @@ try {
   currentUser = null;
 }
 
-// Inicialización de la aplicación
+// Inicialización de la aplicación al cargar el DOM
 document.addEventListener("DOMContentLoaded", () => {
   initAppState();
   initDonationControls();
 
-  // Cerrar dropdown al hacer click fuera del widget de sesión
+  // Cerrar menú dropdown al hacer click fuera del widget de sesión
   document.addEventListener("click", (e) => {
     const widget = document.getElementById("user-session-widget");
     const dropdown = document.getElementById("user-dropdown");
@@ -36,15 +36,10 @@ document.addEventListener("DOMContentLoaded", () => {
    ========================================================================== */
 
 function initAppState() {
-  const loginView = document.getElementById("login-view");
-  const appView = document.getElementById("app-view");
-
   if (currentToken && currentUser) {
-    // Si hay token guardado, mostramos la ventana de donaciones y validamos el JWT
     showAppView();
     validateSession();
   } else {
-    // Si no hay sesión, mostramos la pantalla principal de LOGIN
     showLoginView();
   }
 }
@@ -79,6 +74,7 @@ function updateSessionIcon() {
   const jwtBadge = document.querySelector(".jwt-badge");
   const rolePill = document.querySelector(".role-pill");
   const btnAdminPanel = document.getElementById("btn-admin-panel");
+  const btnNavAdmin = document.getElementById("btn-nav-admin");
 
   if (initialsEl) initialsEl.textContent = initials;
   if (fullNameEl) fullNameEl.textContent = currentUser.name;
@@ -102,7 +98,7 @@ function updateSessionIcon() {
 
   if (rolePill) {
     if (isAdmin) {
-      rolePill.textContent = "👑 Superusuario (Acceso Total a BD)";
+      rolePill.textContent = "👑 Superusuario (Acceso Total)";
       rolePill.classList.add("admin-pill");
     } else {
       rolePill.textContent = "Donante Autenticado";
@@ -118,15 +114,23 @@ function updateSessionIcon() {
     }
   }
 
+  if (btnNavAdmin) {
+    if (isAdmin) {
+      btnNavAdmin.classList.remove("hidden");
+    } else {
+      btnNavAdmin.classList.add("hidden");
+    }
+  }
+
   if (bannerNameEl) {
     bannerNameEl.textContent = isAdmin
-      ? `👑 Sesión de Superusuario: ${currentUser.name}`
-      : `Sesión iniciada con JWT: ${currentUser.name}`;
+      ? `👑 Superusuario: ${currentUser.name}`
+      : currentUser.name;
   }
   if (bannerEmailEl) {
     bannerEmailEl.textContent = isAdmin
-      ? `Tienes privilegios de administración y acceso directo a la Base de Datos SQLite.`
-      : `Tus aportes se vincularán automáticamente a tu cuenta (${currentUser.email}).`;
+      ? `Acceso total habilitado a SQLite (${currentUser.email})`
+      : `Vincular aporte a: ${currentUser.email}`;
   }
 }
 
@@ -142,8 +146,13 @@ function getInitials(name) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth" });
+}
+
 /* ==========================================================================
-   2. PESTAÑAS Y ACCIONES DE LOGIN / REGISTRO
+   2. ACCIONES DE LOGIN / REGISTRO
    ========================================================================== */
 
 function switchLoginTab(tab) {
@@ -156,28 +165,28 @@ function switchLoginTab(tab) {
   if (errorMsg) errorMsg.classList.add("hidden");
 
   if (tab === "login") {
-    btnLogin.classList.add("active");
-    btnRegister.classList.remove("active");
-    formLogin.classList.remove("hidden");
-    formRegister.classList.add("hidden");
+    if (btnLogin) btnLogin.classList.add("active");
+    if (btnRegister) btnRegister.classList.remove("active");
+    if (formLogin) formLogin.classList.remove("hidden");
+    if (formRegister) formRegister.classList.add("hidden");
   } else {
-    btnRegister.classList.add("active");
-    btnLogin.classList.remove("active");
-    formRegister.classList.remove("hidden");
-    formLogin.classList.add("hidden");
+    if (btnRegister) btnRegister.classList.add("active");
+    if (btnLogin) btnLogin.classList.remove("active");
+    if (formRegister) formRegister.classList.remove("hidden");
+    if (formLogin) formLogin.classList.add("hidden");
   }
 }
 
 function fillAdminCredentials() {
   document.getElementById("login-email").value = "admin@donaciones.org";
   document.getElementById("login-password").value = "admin1234";
-  showToast("Credenciales de Superusuario cargadas.", "info");
+  showToast("Credenciales de Superusuario listas.", "info");
 }
 
 function fillDemoCredentials() {
   document.getElementById("login-email").value = "demo@donaciones.org";
   document.getElementById("login-password").value = "demo1234";
-  showToast("Credenciales de Donante cargadas.", "info");
+  showToast("Credenciales de Donante listas.", "info");
 }
 
 async function handleLoginSubmit(event) {
@@ -205,18 +214,16 @@ async function handleLoginSubmit(event) {
       return;
     }
 
-    // Guardar token JWT y usuario
     currentToken = data.access_token;
     currentUser = data.user;
     localStorage.setItem(STORAGE_TOKEN_KEY, currentToken);
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentUser));
 
-    // Cambiar a la vista de Donaciones
     showAppView();
-    showToast(`¡Bienvenido, ${currentUser.name}! Sesión JWT iniciada con éxito.`, "success");
+    showToast(`¡Bienvenido, ${currentUser.name}!`, "success");
   } catch (err) {
     if (errorMsg) {
-      errorMsg.textContent = "Error de conexión con el servidor Java.";
+      errorMsg.textContent = "Error al conectar con el servidor.";
       errorMsg.classList.remove("hidden");
     }
   } finally {
@@ -250,18 +257,16 @@ async function handleRegisterSubmit(event) {
       return;
     }
 
-    // Guardar token JWT emitido y usuario
     currentToken = data.access_token;
     currentUser = data.user;
     localStorage.setItem(STORAGE_TOKEN_KEY, currentToken);
     localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentUser));
 
-    // Desbloquear ventana de donaciones
     showAppView();
-    showToast(`¡Cuenta creada! Token JWT emitido para ${currentUser.name}.`, "success");
+    showToast(`¡Cuenta creada con éxito para ${currentUser.name}!`, "success");
   } catch (err) {
     if (errorMsg) {
-      errorMsg.textContent = "Error de conexión con el servidor Java.";
+      errorMsg.textContent = "Error al conectar con el servidor.";
       errorMsg.classList.remove("hidden");
     }
   } finally {
@@ -280,7 +285,7 @@ function logout(notify = true) {
 
   showLoginView();
   if (notify) {
-    showToast("Has cerrado sesión. Token JWT destruido.", "info");
+    showToast("Sesión cerrada exitosamente.", "info");
   }
 }
 
@@ -301,7 +306,7 @@ async function apiFetch(url, options = {}) {
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401 && currentToken) {
-    showToast("Tu sesión JWT ha expirado. Por favor ingresa nuevamente.", "error");
+    showToast("Tu sesión JWT ha expirado. Ingresa de nuevo.", "error");
     logout(false);
   }
 
@@ -324,19 +329,19 @@ async function validateSession() {
 }
 
 /* ==========================================================================
-   4. INTERACCIONES DE LA VENTANA DE DONACIONES
+   4. CONTROL DE DONACIONES Y RFC FISCAL
    ========================================================================== */
 
 function initDonationControls() {
-  // Selección de Causas
-  const causeOptions = document.querySelectorAll(".cause-option");
+  // Selección de Causas (pills simplificadas)
+  const causePills = document.querySelectorAll(".cause-pill, .cause-option");
   const selectedCauseInput = document.getElementById("selected-cause-input");
 
-  causeOptions.forEach((option) => {
-    option.addEventListener("click", () => {
-      causeOptions.forEach((o) => o.classList.remove("active"));
-      option.classList.add("active");
-      const causeName = option.getAttribute("data-cause");
+  causePills.forEach((pill) => {
+    pill.addEventListener("click", () => {
+      causePills.forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      const causeName = pill.getAttribute("data-cause");
       if (selectedCauseInput) selectedCauseInput.value = causeName;
     });
   });
@@ -352,7 +357,7 @@ function initDonationControls() {
       btn.classList.add("active");
       const val = btn.getAttribute("data-val");
       if (customAmountInput) customAmountInput.value = val;
-      if (btnDonationAmountText) btnDonationAmountText.textContent = `$${val} USD`;
+      if (btnDonationAmountText) btnDonationAmountText.textContent = `$${parseFloat(val).toFixed(2)} USD`;
     });
   });
 
@@ -371,7 +376,7 @@ function initDonationControls() {
     });
   }
 
-  // Métodos de pago simulados
+  // Métodos de pago
   const paymentCards = document.querySelectorAll(".payment-method-card");
   paymentCards.forEach((card) => {
     card.addEventListener("click", () => {
@@ -382,7 +387,7 @@ function initDonationControls() {
 
       const cardFields = document.getElementById("card-fields");
       if (cardFields) {
-        if (radio.value === "tarjeta") {
+        if (radio && radio.value === "tarjeta") {
           cardFields.classList.remove("hidden");
         } else {
           cardFields.classList.add("hidden");
@@ -392,16 +397,45 @@ function initDonationControls() {
   });
 }
 
+// Toggle para mostrar/ocultar el campo RFC
+function toggleRfcField() {
+  const check = document.getElementById("tax-deductible-check");
+  const rfcGroup = document.getElementById("rfc-field-group");
+  const rfcInput = document.getElementById("donor-rfc");
+  if (!check || !rfcGroup) return;
+
+  if (check.checked) {
+    rfcGroup.classList.remove("hidden");
+    if (rfcInput) rfcInput.focus();
+  } else {
+    rfcGroup.classList.add("hidden");
+    if (rfcInput) rfcInput.value = "";
+  }
+}
+
 async function handleDonationSubmit(event) {
   event.preventDefault();
 
-  const cause = document.getElementById("selected-cause-input").value;
+  const causeInput = document.getElementById("selected-cause-input");
+  const cause = causeInput ? causeInput.value : "Educación para Niños";
   const amountInput = document.getElementById("custom-amount-input").value;
   const amount = parseFloat(amountInput);
-  const message = document.getElementById("donation-message").value.trim();
+  const messageInput = document.getElementById("donation-message");
+  const message = messageInput ? messageInput.value.trim() : "";
 
   const selectedPayment = document.querySelector("input[name='payment_method']:checked");
   const paymentMethod = selectedPayment ? selectedPayment.value : "tarjeta";
+
+  // Extraer RFC si el checkbox está activo
+  const taxCheck = document.getElementById("tax-deductible-check");
+  let rfc = null;
+  if (taxCheck && taxCheck.checked) {
+    const rfcInput = document.getElementById("donor-rfc");
+    const rfcVal = rfcInput ? rfcInput.value.trim().toUpperCase() : "";
+    if (rfcVal) {
+      rfc = rfcVal;
+    }
+  }
 
   if (!amount || amount <= 0) {
     showToast("Por favor ingresa un monto válido mayor a $0.", "error");
@@ -413,6 +447,7 @@ async function handleDonationSubmit(event) {
     cause,
     payment_method: paymentMethod,
     message: message || null,
+    rfc: rfc || null,
   };
 
   const submitBtn = document.getElementById("btn-donate-submit");
@@ -436,10 +471,12 @@ async function handleDonationSubmit(event) {
     fetchStats();
     showToast("¡Donación procesada exitosamente!", "success");
 
-    // Limpiar mensaje
-    document.getElementById("donation-message").value = "";
+    // Limpiar campos opcionales
+    if (messageInput) messageInput.value = "";
+    if (taxCheck) taxCheck.checked = false;
+    toggleRfcField();
   } catch (err) {
-    showToast("Error de conexión al procesar la donación.", "error");
+    showToast("Error de conexión al registrar la donación.", "error");
   } finally {
     if (submitBtn) submitBtn.disabled = false;
   }
@@ -450,18 +487,29 @@ async function handleDonationSubmit(event) {
    ========================================================================== */
 
 function showReceiptModal(donation) {
-  document.getElementById("rec-donor-name").textContent = donation.donor_name;
-  document.getElementById("rec-donor-email").textContent = donation.donor_email;
-  document.getElementById("rec-cause").textContent = donation.cause;
-  document.getElementById("rec-amount").textContent = `$${donation.amount.toFixed(2)} USD`;
-  document.getElementById("rec-payment").textContent = donation.payment_method.toUpperCase();
-  document.getElementById("rec-id").textContent = `#DON-${donation.id.toString().padStart(5, "0")}`;
+  const elName = document.getElementById("rec-donor-name");
+  const elEmail = document.getElementById("rec-donor-email");
+  const elRfc = document.getElementById("rec-rfc");
+  const elCause = document.getElementById("rec-cause");
+  const elAmount = document.getElementById("rec-amount");
+  const elPayment = document.getElementById("rec-payment");
+  const elId = document.getElementById("rec-id");
 
-  document.getElementById("receipt-modal").classList.remove("hidden");
+  if (elName) elName.textContent = donation.donor_name;
+  if (elEmail) elEmail.textContent = donation.donor_email;
+  if (elRfc) elRfc.textContent = donation.rfc && donation.rfc.trim() !== "" ? donation.rfc : "No solicitado";
+  if (elCause) elCause.textContent = donation.cause;
+  if (elAmount) elAmount.textContent = `$${Number(donation.amount).toFixed(2)} USD`;
+  if (elPayment) elPayment.textContent = donation.payment_method.toUpperCase();
+  if (elId) elId.textContent = `#DON-${donation.id.toString().padStart(5, "0")}`;
+
+  const modal = document.getElementById("receipt-modal");
+  if (modal) modal.classList.remove("hidden");
 }
 
 function closeReceiptModal() {
-  document.getElementById("receipt-modal").classList.add("hidden");
+  const modal = document.getElementById("receipt-modal");
+  if (modal) modal.classList.add("hidden");
 }
 
 async function fetchStats() {
@@ -470,9 +518,13 @@ async function fetchStats() {
     if (!res.ok) return;
     const stats = await res.json();
 
-    document.getElementById("stat-total").textContent = `$${Number(stats.total_raised).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-    document.getElementById("stat-count").textContent = stats.donations_count;
-    document.getElementById("progress-bar-fill").style.width = `${stats.progress_percentage}%`;
+    const totalEl = document.getElementById("stat-total");
+    const countEl = document.getElementById("stat-count");
+    const fillEl = document.getElementById("progress-bar-fill");
+
+    if (totalEl) totalEl.textContent = `$${Number(stats.total_raised).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+    if (countEl) countEl.textContent = stats.donations_count;
+    if (fillEl) fillEl.style.width = `${stats.progress_percentage}%`;
   } catch (e) {
     console.warn("No se pudieron cargar estadísticas:", e);
   }
@@ -488,20 +540,20 @@ async function openMyDonationsModal() {
   const dropdown = document.getElementById("user-dropdown");
   if (dropdown) dropdown.classList.add("hidden");
 
-  container.innerHTML = "<p style='padding:1rem; color:#64748b;'>Cargando historial protegido con JWT...</p>";
+  container.innerHTML = "<p style='padding:1.5rem; color:#64748b; text-align:center;'>Cargando historial protegido...</p>";
   modal.classList.remove("hidden");
 
   try {
     const res = await apiFetch("/api/donations/my-donations");
     if (!res.ok) {
-      container.innerHTML = "<p class='auth-error'>No se pudo cargar el historial. Sesión no válida.</p>";
+      container.innerHTML = "<p class='error-badge'>No se pudo cargar el historial. Sesión no válida.</p>";
       return;
     }
 
     const donations = await res.json();
 
     if (donations.length === 0) {
-      container.innerHTML = "<p style='padding:1.5rem; text-align:center; color:#64748b;'>Aún no tienes donaciones registradas con tu cuenta.</p>";
+      container.innerHTML = "<p style='padding:2rem; text-align:center; color:#64748b;'>Aún no tienes donaciones registradas con tu cuenta.</p>";
       return;
     }
 
@@ -512,6 +564,7 @@ async function openMyDonationsModal() {
             <th>Folio</th>
             <th>Causa</th>
             <th>Monto</th>
+            <th>RFC</th>
             <th>Método</th>
             <th>Fecha</th>
           </tr>
@@ -520,11 +573,13 @@ async function openMyDonationsModal() {
     `;
 
     donations.forEach((d) => {
+      const rfcDisplay = d.rfc && d.rfc.trim() !== "" ? `<span class="badge-rfc">${escapeHtml(d.rfc)}</span>` : `<span style="color:#94a3b8;">-</span>`;
       html += `
         <tr>
           <td><span class="code-tag">#DON-${d.id.toString().padStart(4, "0")}</span></td>
           <td><strong>${escapeHtml(d.cause)}</strong></td>
-          <td class="text-green font-bold">$${d.amount.toFixed(2)}</td>
+          <td class="text-green font-bold">$${Number(d.amount).toFixed(2)}</td>
+          <td>${rfcDisplay}</td>
           <td>${escapeHtml(d.payment_method)}</td>
           <td><small>${escapeHtml(d.created_at)}</small></td>
         </tr>
@@ -534,12 +589,13 @@ async function openMyDonationsModal() {
     html += `</tbody></table>`;
     container.innerHTML = html;
   } catch (err) {
-    container.innerHTML = "<p class='auth-error'>Error al consultar la API de donaciones.</p>";
+    container.innerHTML = "<p class='error-badge'>Error al consultar la API de donaciones.</p>";
   }
 }
 
 function closeMyDonationsModal() {
-  document.getElementById("my-donations-modal").classList.add("hidden");
+  const modal = document.getElementById("my-donations-modal");
+  if (modal) modal.classList.add("hidden");
 }
 
 /* ==========================================================================
@@ -551,39 +607,37 @@ function openJwtInspectorModal() {
   const dropdown = document.getElementById("user-dropdown");
   if (dropdown) dropdown.classList.add("hidden");
 
-  const rawDisplay = document.getElementById("raw-jwt-display");
   const headerDisplay = document.getElementById("jwt-header-display");
   const payloadDisplay = document.getElementById("jwt-payload-display");
 
   if (!currentToken) {
-    rawDisplay.textContent = "No hay ningún token JWT activo.";
-    headerDisplay.textContent = "{}";
-    payloadDisplay.textContent = "{}";
+    if (headerDisplay) headerDisplay.textContent = "{}";
+    if (payloadDisplay) payloadDisplay.textContent = "{}";
   } else {
-    rawDisplay.textContent = currentToken;
     const parts = currentToken.split(".");
     if (parts.length === 3) {
       try {
         const header = JSON.parse(atob(parts[0]));
         const payload = JSON.parse(atob(parts[1]));
-        headerDisplay.textContent = JSON.stringify(header, null, 2);
-        payloadDisplay.textContent = JSON.stringify(payload, null, 2);
+        if (headerDisplay) headerDisplay.textContent = JSON.stringify(header, null, 2);
+        if (payloadDisplay) payloadDisplay.textContent = JSON.stringify(payload, null, 2);
       } catch (e) {
-        headerDisplay.textContent = "// Error al decodificar base64url";
-        payloadDisplay.textContent = "// Error al decodificar base64url";
+        if (headerDisplay) headerDisplay.textContent = "// Error al decodificar base64";
+        if (payloadDisplay) payloadDisplay.textContent = "// Error al decodificar base64";
       }
     }
   }
 
-  modal.classList.remove("hidden");
+  if (modal) modal.classList.remove("hidden");
 }
 
 function closeJwtInspectorModal() {
-  document.getElementById("jwt-inspector-modal").classList.add("hidden");
+  const modal = document.getElementById("jwt-inspector-modal");
+  if (modal) modal.classList.add("hidden");
 }
 
 /* ==========================================================================
-   7.5. PANEL DE SUPERUSUARIO (BASE DE DATOS SQLITE)
+   8. PANEL DE SUPERUSUARIO (BASE DE DATOS SQLITE)
    ========================================================================== */
 
 function openAdminPanelModal() {
@@ -596,12 +650,13 @@ function openAdminPanelModal() {
     return;
   }
 
-  modal.classList.remove("hidden");
+  if (modal) modal.classList.remove("hidden");
   loadAdminData();
 }
 
 function closeAdminPanelModal() {
-  document.getElementById("admin-modal").classList.add("hidden");
+  const modal = document.getElementById("admin-modal");
+  if (modal) modal.classList.add("hidden");
 }
 
 function switchAdminTab(tab) {
@@ -611,15 +666,15 @@ function switchAdminTab(tab) {
   const donationsContainer = document.getElementById("admin-donations-container");
 
   if (tab === "users") {
-    tabUsersBtn.classList.add("active");
-    tabDonationsBtn.classList.remove("active");
-    usersContainer.classList.remove("hidden");
-    donationsContainer.classList.add("hidden");
+    if (tabUsersBtn) tabUsersBtn.classList.add("active");
+    if (tabDonationsBtn) tabDonationsBtn.classList.remove("active");
+    if (usersContainer) usersContainer.classList.remove("hidden");
+    if (donationsContainer) donationsContainer.classList.add("hidden");
   } else {
-    tabDonationsBtn.classList.add("active");
-    tabUsersBtn.classList.remove("active");
-    donationsContainer.classList.remove("hidden");
-    usersContainer.classList.add("hidden");
+    if (tabDonationsBtn) tabDonationsBtn.classList.add("active");
+    if (tabUsersBtn) tabUsersBtn.classList.remove("active");
+    if (donationsContainer) donationsContainer.classList.remove("hidden");
+    if (usersContainer) usersContainer.classList.add("hidden");
   }
 }
 
@@ -629,15 +684,15 @@ async function loadAdminData() {
   const usersCountEl = document.getElementById("admin-users-count");
   const donationsCountEl = document.getElementById("admin-donations-count");
 
-  usersContainer.innerHTML = "<p style='padding:1rem; color:#64748b;'>Cargando usuarios desde SQLite...</p>";
-  donationsContainer.innerHTML = "<p style='padding:1rem; color:#64748b;'>Cargando donaciones desde SQLite...</p>";
+  if (usersContainer) usersContainer.innerHTML = "<p style='padding:1.5rem; color:#64748b; text-align:center;'>Cargando usuarios desde SQLite...</p>";
+  if (donationsContainer) donationsContainer.innerHTML = "<p style='padding:1.5rem; color:#64748b; text-align:center;'>Cargando donaciones desde SQLite...</p>";
 
-  // 1. Cargar Usuarios
+  // 1. Usuarios
   try {
     const resUsers = await apiFetch("/api/admin/users");
     if (resUsers.ok) {
       const users = await resUsers.json();
-      usersCountEl.textContent = users.length;
+      if (usersCountEl) usersCountEl.textContent = users.length;
 
       let htmlUsers = `
         <table class="donations-table">
@@ -665,20 +720,20 @@ async function loadAdminData() {
         `;
       });
       htmlUsers += `</tbody></table>`;
-      usersContainer.innerHTML = htmlUsers;
+      if (usersContainer) usersContainer.innerHTML = htmlUsers;
     } else {
-      usersContainer.innerHTML = "<p class='auth-error'>Error al cargar usuarios de la BD.</p>";
+      if (usersContainer) usersContainer.innerHTML = "<p class='error-badge'>Error al cargar usuarios de la BD.</p>";
     }
   } catch (e) {
-    usersContainer.innerHTML = "<p class='auth-error'>Error de conexión con la BD.</p>";
+    if (usersContainer) usersContainer.innerHTML = "<p class='error-badge'>Error de conexión con la BD.</p>";
   }
 
-  // 2. Cargar Donaciones
+  // 2. Donaciones
   try {
     const resDonations = await apiFetch("/api/admin/donations");
     if (resDonations.ok) {
       const donations = await resDonations.json();
-      donationsCountEl.textContent = donations.length;
+      if (donationsCountEl) donationsCountEl.textContent = donations.length;
 
       let htmlDons = `
         <table class="donations-table">
@@ -687,6 +742,7 @@ async function loadAdminData() {
               <th>Folio</th>
               <th>Donante</th>
               <th>Correo</th>
+              <th>RFC</th>
               <th>Causa</th>
               <th>Monto</th>
               <th>Método</th>
@@ -696,11 +752,13 @@ async function loadAdminData() {
           <tbody>
       `;
       donations.forEach(d => {
+        const rfcDisplay = d.rfc && d.rfc.trim() !== "" ? `<span class="badge-rfc">${escapeHtml(d.rfc)}</span>` : `<span style="color:#94a3b8;">-</span>`;
         htmlDons += `
           <tr>
             <td><span class="code-tag">#DON-${String(d.id).padStart(4, '0')}</span></td>
             <td><strong>${escapeHtml(d.donor_name)}</strong></td>
             <td><small>${escapeHtml(d.donor_email)}</small></td>
+            <td>${rfcDisplay}</td>
             <td>${escapeHtml(d.cause)}</td>
             <td class="text-green font-bold">$${Number(d.amount).toFixed(2)}</td>
             <td>${escapeHtml(d.payment_method)}</td>
@@ -709,17 +767,17 @@ async function loadAdminData() {
         `;
       });
       htmlDons += `</tbody></table>`;
-      donationsContainer.innerHTML = htmlDons;
+      if (donationsContainer) donationsContainer.innerHTML = htmlDons;
     } else {
-      donationsContainer.innerHTML = "<p class='auth-error'>Error al cargar donaciones de la BD.</p>";
+      if (donationsContainer) donationsContainer.innerHTML = "<p class='error-badge'>Error al cargar donaciones de la BD.</p>";
     }
   } catch (e) {
-    donationsContainer.innerHTML = "<p class='auth-error'>Error de conexión con la BD.</p>";
+    if (donationsContainer) donationsContainer.innerHTML = "<p class='error-badge'>Error de conexión con la BD.</p>";
   }
 }
 
 /* ==========================================================================
-   8. UTILIDADES
+   9. UTILIDADES
    ========================================================================== */
 
 function showToast(message, type = "info") {

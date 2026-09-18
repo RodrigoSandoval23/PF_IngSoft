@@ -75,6 +75,7 @@ public class AdminHandler implements HttpHandler {
             map.put("cause", d.getCause());
             map.put("payment_method", d.getPaymentMethod());
             map.put("message", d.getMessage());
+            map.put("rfc", d.getRfc());
             map.put("created_at", d.getCreatedAt());
             list.add(map);
         }

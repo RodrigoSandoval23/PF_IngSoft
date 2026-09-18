@@ -65,6 +65,8 @@ public class DonationHandler implements HttpHandler {
         String donorName = authUser != null ? authUser.getName() : "Donante Anónimo";
         String donorEmail = authUser != null ? authUser.getEmail() : "anonimo@donaciones.org";
 
+        String rfc = data.get("rfc");
+
         Donation donation = dataStore.addDonation(
                 userId,
                 donorName,
@@ -72,7 +74,8 @@ public class DonationHandler implements HttpHandler {
                 amount,
                 HttpHelper.sanitizeHtml(cause),
                 paymentMethod != null ? paymentMethod : "tarjeta",
-                HttpHelper.sanitizeHtml(message)
+                HttpHelper.sanitizeHtml(message),
+                HttpHelper.sanitizeHtml(rfc)
         );
 
         Map<String, Object> resp = mapDonation(donation);
@@ -112,6 +115,7 @@ public class DonationHandler implements HttpHandler {
         map.put("cause", d.getCause());
         map.put("payment_method", d.getPaymentMethod());
         map.put("message", d.getMessage());
+        map.put("rfc", d.getRfc());
         map.put("created_at", d.getCreatedAt());
         return map;
     }
