@@ -114,3 +114,53 @@ El sistema cuenta con un usuario inicial pre-configurado para agilizar la evalua
 - **Correo**: `demo@donaciones.org`
 - **Contraseña**: `demo1234`
 *(En la ventana modal de inicio de sesión existe un botón para autocompletar automáticamente estos datos).*
+
+## Análisis Estático de Código con SonarQube
+El proyecto está configurado para realizar análisis estático de calidad de código, detección de vulnerabilidades de seguridad y Code Smells mediante **SonarQube** en Docker.
+
+## Prerrequisitos
+1. Docker Desktop activo y en ejecución.
+2. Servidor de SonarQube disponible en la red (ej. http://192.168.1.73:9000).
+3. Token de autenticación de SonarQube generado.
+
+## Pasos para realizar el análisis
+## Paso 1: Compilar el proyecto
+SonarQube requiere los archivos binarios compilados (.class) para analizar el código Java en profundidad:
+
+**Bash**
+```bash
+./compile.sh
+```
+## Paso 2: Ejecutar el escáner con Docker
+Ejecuta el siguiente comando en la raíz del proyecto para iniciar la revisión mediante la imagen oficial de sonarsource/sonar-scanner-cli:
+
+Bash
+```bash
+docker run --rm \
+  -v "${PWD}:/usr/src" \
+  -e SONAR_SCANNER_OPTS="-Dsonar.projectKey=PF_IngSoft -Dsonar.sources=. -Dsonar.java.binaries=. -Dsonar.host.url=[http://192.168.1.73:9000](http://192.168.1.73:9000) -Dsonar.login=sqp_9894833601aa407de0cb41233cfd34eeff548315" \
+  sonarsource/sonar-scanner-cli
+```
+**Explicación de parámetros:**
+- --rm: Elimina el contenedor al finalizar el escaneo.
+- -v "${PWD}:/usr/src": Mapea el proyecto local hacia el contenedor.
+- -Dsonar.projectKey=PF_IngSoft: Clave del proyecto dentro de SonarQube.
+- -Dsonar.sources=.: Analiza la fuente dentro del directorio actual.
+- -Dsonar.java.binaries=.: Analiza las clases Java compiladas.
+- -Dsonar.host.url: Dirección del servidor de SonarQube.
+- -Dsonar.login: Token de acceso seguro.
+
+## Paso 3: Consultar reporte
+Cuando finalice la ejecución (EXECUTION SUCCESS), puedes ver las métricas de calidad ingresando al panel Web:
+👉 
+```bash
+http://192.168.1.73:9000/dashboard?id=PF_IngSoft
+```
+
+## Credenciales Demo para Pruebas
+El sistema cuenta con un usuario inicial pre-configurado para agilizar la evaluación:
+
+**Correo:** demo@donaciones.org
+
+**Contraseña:** demo1234
+(En la ventana modal de inicio de sesión existe un botón para autocompletar automáticamente estos datos).
