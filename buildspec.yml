@@ -1,0 +1,18 @@
+version: 0.2
+ 
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+  build:
+    commands:
+      - echo "Compilando y empaquetando con Maven..."
+      - mvn -B clean package
+      - echo "Ejecutando pruebas unitarias..."
+      - bash run_unit_tests.sh
+ 
+artifacts:
+  files:
+    - target/*.jar
+    - static/**/*
+ 
