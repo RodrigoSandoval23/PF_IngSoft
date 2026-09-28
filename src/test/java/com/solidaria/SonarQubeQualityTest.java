@@ -1,18 +1,14 @@
 package com.solidaria;
 
+import java.util.List;
+import java.util.Map;
+
 import com.solidaria.auth.JwtUtil;
 import com.solidaria.auth.PasswordUtil;
 import com.solidaria.auth.RateLimiter;
-import com.solidaria.auth.RbacFilter;
 import com.solidaria.db.DataStore;
 import com.solidaria.model.AuditLog;
 import com.solidaria.model.User;
-
-import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.List;
-import java.util.Map;
 
 /**
  * ============================================================================
@@ -35,7 +31,7 @@ public class SonarQubeQualityTest {
 
     public static void main(String[] args) {
         System.out.println("==========================================================================");
-        System.out.println("📊 SONARQUBE CODE QUALITY & SECURITY GATE TEST SUITE");
+        System.out.println("  SONARQUBE CODE QUALITY & SECURITY GATE TEST SUITE");
         System.out.println("   Analizador Estático y Dinámico de Reglas de Calidad para Java 11");
         System.out.println("==========================================================================\n");
 

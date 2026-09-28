@@ -1,14 +1,5 @@
 package com.solidaria;
 
-import com.solidaria.auth.JwtUtil;
-import com.solidaria.auth.PasswordUtil;
-import com.solidaria.db.DataStore;
-import com.solidaria.handlers.AuthHandler;
-import com.solidaria.handlers.DonationHandler;
-import com.solidaria.handlers.StatsHandler;
-import com.solidaria.model.User;
-import com.sun.net.httpserver.HttpServer;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -20,6 +11,15 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.Executors;
+
+import com.solidaria.auth.JwtUtil;
+import com.solidaria.auth.PasswordUtil;
+import com.solidaria.db.DataStore;
+import com.solidaria.handlers.AuthHandler;
+import com.solidaria.handlers.DonationHandler;
+import com.solidaria.handlers.StatsHandler;
+import com.solidaria.model.User;
+import com.sun.net.httpserver.HttpServer;
 
 /**
  * Suite de Pruebas de Seguridad OWASP Top 10 para la Actividad de Ingeniería de Software.
@@ -36,7 +36,7 @@ public class OwaspSecurityTest {
 
     public static void main(String[] args) {
         System.out.println("==========================================================================");
-        System.out.println("🛡️  INICIANDO SUITE DE PRUEBAS DE SEGURIDAD OWASP TOP 10");
+        System.out.println("   INICIANDO SUITE DE PRUEBAS DE SEGURIDAD OWASP TOP 10");
         System.out.println("    Proyecto: Portal de Donaciones con Autenticación JWT (Java 11)");
         System.out.println("==========================================================================\n");
 
